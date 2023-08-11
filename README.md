@@ -55,9 +55,6 @@ hdr_mode 2 : Temperal HDR
 imageType 0 : Grayscale 
 imageType 1 : Distance 
 imageType 2 : Distance / Amplitude
-imageType 3 : DCS
-imageType 4 : Distance / Grayscale
-imageType 5 : Distance / Amplitude / Grayscale
 
 int0 , int2, int3 = 0 ~ 2500(VCSEL), 0 ~ 4000(LED)
 
