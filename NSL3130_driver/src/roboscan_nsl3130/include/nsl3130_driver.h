@@ -99,9 +99,7 @@ private:
 	static Settings *gSettings;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr imagePublisher1;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr imagePublisher2;
-    rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr imageHeaderPublisher;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointCloud2Publisher;
-    rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr cameraInfoPublisher;
 
     uint imageSize8;
     uint imageSize16_1;

@@ -160,8 +160,6 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
     imagePublisher1 = create_publisher<sensor_msgs::msg::Image>("roboscanDistance", qos_profile); 
     imagePublisher2 = create_publisher<sensor_msgs::msg::Image>("roboscanAmplitude", qos_profile); 
     pointCloud2Publisher = create_publisher<sensor_msgs::msg::PointCloud2>("roboscanPointCloud", qos_profile); 
-    cameraInfoPublisher  = create_publisher<sensor_msgs::msg::CameraInfo>("roboscanCameraInfo", qos_profile); 
-    imageHeaderPublisher = create_publisher<std_msgs::msg::Int32MultiArray>("roboscanImageHeader", qos_profile); 
 
     initCommunication();
 
@@ -892,8 +890,6 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
         updateTemperature(image->getTemperature());
     }
 
-	printf("updateDistanceFrame\n");
-
     if(gSettings->enableImages)
     {
         //img16_1.header.seq = frameSeq++;
@@ -920,8 +916,6 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
 		ampl2BData.clear();
 		gray2BData.clear();
 
-		printf("updateDistanceFrame 2\n");
-
 		int maxHeight = image->getHeight();
 		int maxWidth = image->getWidth();
 
@@ -940,11 +934,9 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
 			}
     	}
 
-		printf("updateDistanceFrame3 \n");
         imagePublisher1->publish(img16_1);
     }
 
-	printf("updateDistanceFrame 4\n");
 	publisherPointCloud(image);
 
 
@@ -957,8 +949,6 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
 		cv::imshow(winName, imageLidar);
 		cv::waitKey(1);
 	}
-	printf("updateDistanceFrame 5\n");
-
 }
 
 
