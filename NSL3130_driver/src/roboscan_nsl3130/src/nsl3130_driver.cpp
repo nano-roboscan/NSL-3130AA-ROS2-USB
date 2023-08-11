@@ -300,6 +300,9 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 		if (param.get_name() == "A. imageType")
 		{
 			int imgType = param.as_int();
+			if( imgType < 0 ) imgType = 0;
+			if( imgType > 2 ) imgType = 2;
+			
 			if( settings_callback.imageType != imgType ){
 				settings_callback.imageType = imgType;
 				settings_callback.changedCvShow = true;
@@ -307,7 +310,9 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 		}
 		else if (param.get_name() == "B. modFrequency")
 		{
-			settings_callback.modFrequency= param.as_int();
+			settings_callback.modFrequency = param.as_int();
+			if( settings_callback.modFrequency < 0 ) settings_callback.modFrequency = 0;
+			if( settings_callback.modFrequency > 3 ) settings_callback.modFrequency = 3;
 		}
 		else if (param.get_name() == "C. startStream")
 		{
@@ -316,22 +321,32 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 		else if (param.get_name() == "D. Hdr")
 		{
 			settings_callback.hdrMode = param.as_int();
+			if( settings_callback.hdrMode < 0 ) settings_callback.hdrMode = 0;
+			if( settings_callback.hdrMode > 2 ) settings_callback.hdrMode = 2;
 		}
 		else if (param.get_name() == "E. integrationTime0")
 		{
 			settings_callback.integrationTimeTOF1 = param.as_int();
+			if( settings_callback.integrationTimeTOF1 < 0 ) settings_callback.integrationTimeTOF1 = 0;
+			if( settings_callback.integrationTimeTOF1 > 4000 ) settings_callback.integrationTimeTOF1 = 4000;
 		}
 		else if (param.get_name() == "F. integrationTime1")
 		{
 			settings_callback.integrationTimeTOF2 = param.as_int();
+			if( settings_callback.integrationTimeTOF2 < 0 ) settings_callback.integrationTimeTOF2 = 0;
+			if( settings_callback.integrationTimeTOF2 > 4000 ) settings_callback.integrationTimeTOF2 = 4000;
 		}
 		else if (param.get_name() == "G. integrationTime2")
 		{
 			settings_callback.integrationTimeTOF3 = param.as_int();
+			if( settings_callback.integrationTimeTOF3 < 0 ) settings_callback.integrationTimeTOF3 = 0;
+			if( settings_callback.integrationTimeTOF3 > 4000 ) settings_callback.integrationTimeTOF3 = 4000;
 		}
 		else if (param.get_name() == "H. integrationTimeGray")
 		{
 			settings_callback.integrationTimeGray = param.as_int();
+			if( settings_callback.integrationTimeGray < 0 ) settings_callback.integrationTimeGray = 0;
+			if( settings_callback.integrationTimeGray > 40000 ) settings_callback.integrationTimeGray = 40000;
 		}
 		else if (param.get_name() == "I. temporalFilterFactor")
 		{
@@ -453,12 +468,13 @@ void Nsl3130Driver::setParameters()
 
         framePeriod = 1.0 / gSettings->frameRate * 1000.0f; // msec
 
-		int modulationFreq = gSettings->modFrequency == 0 ? 1 : gSettings->modFrequency == 1 ? 0 : gSettings->modFrequency > 3 ? 3 : gSettings->modFrequency;
-		int modulationCh = gSettings->modChannel > 15 ? 15 : gSettings->modChannel < 0 ? 0 : gSettings->modChannel;
+		int modFrequency = gSettings->modFrequency == 0 ? 1 : gSettings->modFrequency == 1 ? 0 : gSettings->modFrequency > 3 ? 3 : gSettings->modFrequency;
+		int modChannel = gSettings->modChannel;
+
         communication.setHDRMode(gSettings->hdrMode);
         communication.setIntegrationTime3d(gSettings->integrationTimeTOF1, gSettings->integrationTimeTOF2, gSettings->integrationTimeTOF3, gSettings->integrationTimeGray);        
         communication.setMinimalAmplitude(gSettings->minAmplitude);
-        communication.setModulationFrequency(modulationFreq, modulationCh);
+        communication.setModulationFrequency(modFrequency, modChannel);
         communication.setFilter(gSettings->medianFilter, gSettings->averageFilter, 1000.0 * gSettings->kalmanFactor, gSettings->kalmanThreshold,
                                 gSettings->edgeThreshold, gSettings->interferenceDetectionLimit, gSettings->interferenceDetectionUseLastValue);
         communication.setRoi(gSettings->roi_leftX, gSettings->roi_topY, gSettings->roi_rightX, gSettings->roi_bottomY);
