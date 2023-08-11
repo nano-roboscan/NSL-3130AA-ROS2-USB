@@ -118,7 +118,7 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 	gSettings->integrationTimeTOF2 = 500;
 	gSettings->integrationTimeTOF3 = 50;
 	gSettings->integrationTimeGray = 100;
-	gSettings->modFrequency = 0;
+	gSettings->modFrequency = 1;
 	gSettings->modChannel = 0;
 
 	gSettings->medianFilter = false;
