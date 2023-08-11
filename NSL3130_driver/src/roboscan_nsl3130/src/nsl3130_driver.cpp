@@ -434,10 +434,12 @@ void Nsl3130Driver::setParameters()
 
         framePeriod = 1.0 / gSettings->frameRate;
 
+		int modulationFreq = gSettings->modFrequency == 0 ? 1 : gSettings->modFrequency == 1 ? 0 : gSettings->modFrequency > 3 ? 3 : gSettings->modFrequency;
+		int modulationCh = gSettings->modChannel > 15 ? 15 : gSettings->modChannel < 0 ? 0 : gSettings->modChannel;
         communication.setHDRMode(gSettings->hdrMode);
         communication.setIntegrationTime3d(gSettings->integrationTimeTOF1, gSettings->integrationTimeTOF2, gSettings->integrationTimeTOF3, gSettings->integrationTimeGray);        
         communication.setMinimalAmplitude(gSettings->minAmplitude);
-        communication.setModulationFrequency(gSettings->modFrequency, gSettings->modChannel);
+        communication.setModulationFrequency(modulationFreq, modulationCh);
         communication.setFilter(gSettings->medianFilter, gSettings->averageFilter, 1000.0 * gSettings->kalmanFactor, gSettings->kalmanThreshold,
                                 gSettings->edgeThreshold, gSettings->interferenceDetectionLimit, gSettings->interferenceDetectionUseLastValue);
         communication.setRoi(gSettings->roi_leftX, gSettings->roi_topY, gSettings->roi_rightX, gSettings->roi_bottomY);
