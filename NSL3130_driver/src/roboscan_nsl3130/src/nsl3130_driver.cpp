@@ -110,7 +110,7 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
     strFrameID = "roboscan_frame";
 
 	gSettings = &settings;
-    gSettings->runVideo = false;
+
 	gSettings->imageType = Nsl3130Image::ImageType_e::DISTANCE_AMPLITUDE;
 	gSettings->lenstype = 1;
 	gSettings->frameRate = 20; //fps
@@ -121,7 +121,7 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 	gSettings->integrationTimeTOF2 = 500;
 	gSettings->integrationTimeTOF3 = 50;
 	gSettings->integrationTimeGray = 100;
-	gSettings->modFrequency = 1;
+	gSettings->modFrequency = 1;	// 12Mhz
 	gSettings->modChannel = 0;
 
 	gSettings->medianFilter = false;
@@ -132,11 +132,10 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 	gSettings->interferenceDetectionLimit = 0;
 	gSettings->interferenceDetectionUseLastValue = 0;
 
+	gSettings->minAmplitude = 50;
 	gSettings->minDistance = 30;
 	gSettings->maxDistance = 12500;
 
-	gSettings->minAmplitude = 100;
-	gSettings->startStream = false;
 	
     gSettings->enableCartesian   = true;
     gSettings->enableTemperature = false;
@@ -148,6 +147,7 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 	gSettings->roi_topY = 0;
 	gSettings->roi_bottomY = 239;
 
+	gSettings->startStream = true;	// auto start
 	gSettings->runVideo = false;
 	gSettings->triggerSingleShot = false;
 	gSettings->updateParam = true;
@@ -204,81 +204,118 @@ void Nsl3130Driver::thread_callback()
 
 void Nsl3130Driver::parameterInit()
 {
-	rclcpp::Parameter pImageType("A. imageType", settings.imageType);
-	rclcpp::Parameter pModeFrequency("B. modFrequency", settings.modFrequency);
-	rclcpp::Parameter pStartStream("C. startStream", settings.startStream);
-	rclcpp::Parameter pHdr("D. Hdr", settings.hdrMode);
-	rclcpp::Parameter pIntegrationTime0("E. integrationTime0", settings.integrationTimeTOF1);
-	rclcpp::Parameter pIntegrationTime1("F. integrationTime1", settings.integrationTimeTOF2);
-	rclcpp::Parameter pIntegrationTime2("G. integrationTime2", settings.integrationTimeTOF3);
-	rclcpp::Parameter pIntegrationTimeGray("H. integrationTimeGray", settings.integrationTimeGray);
-	rclcpp::Parameter pTemporalFilterFactor("I. temporalFilterFactor", settings.kalmanFactor);
-	rclcpp::Parameter pTemporalFilterThreshold("J. temporalFilterThreshold", settings.kalmanThreshold);
-	rclcpp::Parameter pMedianFilter("K. medianFilter", settings.medianFilter);
-	rclcpp::Parameter pAverageFilter("L. averageFilter", settings.averageFilter);
-	rclcpp::Parameter pEdgeThreshold("M. edgeThreshold", settings.edgeThreshold);
-	rclcpp::Parameter pMinAmplitude("N. minAmplitude", settings.minAmplitude);
-	rclcpp::Parameter pMinDistance("O. minDistance", settings.minDistance);
-	rclcpp::Parameter pMaxDistance("P. maxDistance", settings.maxDistance);
-	rclcpp::Parameter pRoiLeftX("Q. roiLeftX", settings.roi_leftX);
-	rclcpp::Parameter pRoiTopY("R. roiTopY", settings.roi_topY);
-	rclcpp::Parameter pRoiRightX("S. roiRightX", settings.roi_rightX);
-	rclcpp::Parameter pRoiBottomY("T. roiBottomY", settings.roi_bottomY);
-	rclcpp::Parameter pLensType("U. lensType", settings.lenstype);
-	rclcpp::Parameter pTriggerSingleShot("V. triggerSingleShot", settings.triggerSingleShot);
-	rclcpp::Parameter pCvshow("W. cvShow", settings.cvShow);
-	rclcpp::Parameter pFps("X. frameRate", settings.frameRate);
-	
-	this->declare_parameter<int>("A. imageType", settings.imageType);
-	this->declare_parameter<int>("B. modFrequency", settings.modFrequency);		
-	this->declare_parameter<bool>("C. startStream", settings.startStream);	
-	this->declare_parameter<int>("D. Hdr", settings.hdrMode);	
-	this->declare_parameter<int>("E. integrationTime0", settings.integrationTimeTOF1);
-	this->declare_parameter<int>("F. integrationTime1", settings.integrationTimeTOF2);	
-	this->declare_parameter<int>("G. integrationTime2", settings.integrationTimeTOF3);
-	this->declare_parameter<int>("H. integrationTimeGray", settings.integrationTimeGray);
-	this->declare_parameter<double>("I. temporalFilterFactor", settings.kalmanFactor);
-	this->declare_parameter<int>("J. temporalFilterThreshold", settings.kalmanThreshold);
-	this->declare_parameter<bool>("K. medianFilter", settings.medianFilter);
-	this->declare_parameter<bool>("L. averageFilter", settings.averageFilter);
-	this->declare_parameter<int>("M. edgeThreshold", settings.edgeThreshold);
-	this->declare_parameter<int>("N. minAmplitude", settings.minAmplitude);
-	this->declare_parameter<int>("O. minDistance", settings.minDistance);
-	this->declare_parameter<int>("P. maxDistance", settings.maxDistance);
-	this->declare_parameter<int>("Q. roiLeftX", settings.roi_leftX);
-	this->declare_parameter<int>("R. roiTopY", settings.roi_topY);
-	this->declare_parameter<int>("S. roiRightX", settings.roi_rightX);
-	this->declare_parameter<int>("T. roiBottomY", settings.roi_bottomY);
-	this->declare_parameter<int>("U. lensType", settings.lenstype);
-	this->declare_parameter<bool>("V. triggerSingleShot", settings.triggerSingleShot);
-	this->declare_parameter<bool>("W. cvShow", settings.cvShow);
-	this->declare_parameter<int>("X. frameRate", settings.frameRate);
-	
+	rcl_interfaces::msg::ParameterDescriptor descriptor;
+    rcl_interfaces::msg::IntegerRange range;
+	rcl_interfaces::msg::ParameterDescriptor descriptorFloat;
+    rcl_interfaces::msg::FloatingPointRange floating_range;
 
-	this->set_parameter(pImageType);
-	this->set_parameter(pModeFrequency);	
-	this->set_parameter(pStartStream);
-	this->set_parameter(pHdr);
-	this->set_parameter(pIntegrationTime0);
-	this->set_parameter(pIntegrationTime1);
-	this->set_parameter(pIntegrationTime2);
-	this->set_parameter(pIntegrationTimeGray);
-	this->set_parameter(pTemporalFilterFactor);
-	this->set_parameter(pTemporalFilterThreshold);
-	this->set_parameter(pMedianFilter);
-	this->set_parameter(pAverageFilter);
-	this->set_parameter(pEdgeThreshold);
-	this->set_parameter(pMinAmplitude);
-	this->set_parameter(pMinDistance);
-	this->set_parameter(pMaxDistance);
-	this->set_parameter(pRoiLeftX);
-	this->set_parameter(pRoiTopY);
-	this->set_parameter(pRoiRightX);
-	this->set_parameter(pRoiBottomY);
-	this->set_parameter(pLensType);
-	this->set_parameter(pTriggerSingleShot);
-	this->set_parameter(pCvshow);
-	this->set_parameter(pFps);
+
+	this->declare_parameter<bool>("A. startStream", settings.startStream);	
+	this->declare_parameter<bool>("B. triggerSingleShot", settings.triggerSingleShot);
+	this->declare_parameter<bool>("C. cvShow", settings.cvShow);
+
+
+    range.set__from_value(0).set__to_value(2).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("D. imageType", settings.imageType, descriptor);
+//	this->declare_parameter<int>("D. imageType", settings.imageType);
+
+    range.set__from_value(0).set__to_value(3).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("E. modFrequency", settings.modFrequency, descriptor);
+//	this->declare_parameter<int>("E. modFrequency", settings.modFrequency);		
+
+
+    range.set__from_value(0).set__to_value(2).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("F. Hdr", 0, descriptor);	
+//	this->declare_parameter<int>("F. Hdr", settings.hdrMode);
+
+    range.set__from_value(0).set__to_value(4000).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("G. integrationTime0", settings.integrationTimeTOF1, descriptor);
+//	this->declare_parameter<int>("G. integrationTime0", settings.integrationTimeTOF1);
+
+    range.set__from_value(0).set__to_value(4000).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("H. integrationTime1", settings.integrationTimeTOF2, descriptor);
+//	this->declare_parameter<int>("H. integrationTime1", settings.integrationTimeTOF2);
+
+    range.set__from_value(0).set__to_value(4000).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("I. integrationTime2", settings.integrationTimeTOF3, descriptor);
+//	this->declare_parameter<int>("I. integrationTime2", settings.integrationTimeTOF3);
+	
+    range.set__from_value(0).set__to_value(40000).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("J. integrationTimeGray", settings.integrationTimeGray, descriptor);
+//	this->declare_parameter<int>("J. integrationTimeGray", settings.integrationTimeGray);
+
+
+    floating_range.set__from_value(0.0).set__to_value(1.0).set__step(0.1);
+	descriptorFloat.floating_point_range= {floating_range};
+	this->declare_parameter("K. temporalFilterFactor", settings.kalmanFactor, descriptorFloat);
+//	this->declare_parameter<double>("K. temporalFilterFactor", settings.kalmanFactor);
+
+    range.set__from_value(0).set__to_value(1000).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("L. temporalFilterThreshold", settings.kalmanThreshold, descriptor);
+//	this->declare_parameter<int>("L. temporalFilterThreshold", settings.kalmanThreshold);
+
+	this->declare_parameter<bool>("M. medianFilter", settings.medianFilter);
+	this->declare_parameter<bool>("N. averageFilter", settings.averageFilter);
+
+    range.set__from_value(0).set__to_value(5000).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("O. edgeThreshold", settings.edgeThreshold, descriptor);
+//	this->declare_parameter<int>("O. edgeThreshold", settings.edgeThreshold);
+
+    range.set__from_value(0).set__to_value(1000).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("P. minAmplitude", settings.minAmplitude, descriptor);
+//	this->declare_parameter<int>("P. minAmplitude", settings.minAmplitude);
+
+//	rcl_interfaces::msg::ParameterDescriptor descriptorMin;
+//  rcl_interfaces::msg::IntegerRange rangeMin;
+    range.set__from_value(0).set__to_value(1000).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("Q. minDistance", settings.minDistance, descriptor);
+//	this->declare_parameter<int>("Q. minDistance", settings.minDistance);
+
+    range.set__from_value(0).set__to_value(50000).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("R. maxDistance", settings.maxDistance, descriptor);
+//	this->declare_parameter<int>("R. maxDistance", settings.maxDistance);
+
+    range.set__from_value(0).set__to_value(124).set__step(4);
+	descriptor.integer_range= {range};
+	this->declare_parameter("S. roiLeftX", settings.roi_leftX, descriptor);
+//	this->declare_parameter<int>("S. roiLeftX", settings.roi_leftX);
+
+    range.set__from_value(0).set__to_value(116).set__step(2);
+	descriptor.integer_range= {range};
+	this->declare_parameter("T. roiTopY", settings.roi_topY, descriptor);
+//	this->declare_parameter<int>("T. roiTopY", settings.roi_topY);
+	
+    range.set__from_value(131).set__to_value(319).set__step(4);
+	descriptor.integer_range= {range};
+	this->declare_parameter<int>("U. roiRightX", settings.roi_rightX, descriptor);
+//	this->declare_parameter<int>("U. roiRightX", settings.roi_rightX);
+
+    range.set__from_value(123).set__to_value(239).set__step(2);
+	descriptor.integer_range= {range};
+	this->declare_parameter("V. roiBottomY", settings.roi_bottomY, descriptor);
+//	this->declare_parameter<int>("V. roiBottomY", settings.roi_bottomY);
+
+    range.set__from_value(0).set__to_value(2).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("W. lensType", settings.lenstype, descriptor);
+//	this->declare_parameter<int>("W. lensType", settings.lenstype);
+
+    range.set__from_value(0).set__to_value(20).set__step(1);
+	descriptor.integer_range= {range};
+	this->declare_parameter("X. frameRate", settings.frameRate, descriptor);
+//	this->declare_parameter<int>("X. frameRate", settings.frameRate);
 	
 
 
@@ -295,8 +332,28 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
     
     for (const auto &param: parameters)
 	{
-		if (param.get_name() == "A. imageType")
+		if (param.get_name() == "A. startStream")
 		{
+			settings_callback.startStream = param.as_bool();
+		}
+		else if (param.get_name() == "B. triggerSingleShot")
+		{
+			settings_callback.triggerSingleShot = param.as_bool();
+		}
+		else if (param.get_name() == "C. cvShow")
+		{
+			bool showCv = param.as_bool();
+			if( settings_callback.cvShow != showCv ){
+				settings_callback.cvShow = showCv;
+				settings_callback.changedCvShow = true;
+			}
+		}
+		else if (param.get_name() == "D. imageType")
+		{
+#if 1
+			string imgType = param.as_string();
+			printf("imgType = %s\n", imgType.c_str());
+#else
 			int imgType = param.as_int();
 			if( imgType < 0 ) imgType = 0;
 			if( imgType > 2 ) imgType = 2;
@@ -305,110 +362,95 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 				settings_callback.imageType = imgType;
 				settings_callback.changedCvShow = true;
 			}
+#endif			
 		}
-		else if (param.get_name() == "B. modFrequency")
+		else if (param.get_name() == "E. modFrequency")
 		{
 			settings_callback.modFrequency = param.as_int();
 			if( settings_callback.modFrequency < 0 ) settings_callback.modFrequency = 0;
 			if( settings_callback.modFrequency > 3 ) settings_callback.modFrequency = 3;
 		}
-		else if (param.get_name() == "C. startStream")
-		{
-			settings_callback.startStream = param.as_bool();
-		}
-		else if (param.get_name() == "D. Hdr")
+		else if (param.get_name() == "F. Hdr")
 		{
 			settings_callback.hdrMode = param.as_int();
 			if( settings_callback.hdrMode < 0 ) settings_callback.hdrMode = 0;
 			if( settings_callback.hdrMode > 2 ) settings_callback.hdrMode = 2;
 		}
-		else if (param.get_name() == "E. integrationTime0")
+		else if (param.get_name() == "G. integrationTime0")
 		{
 			settings_callback.integrationTimeTOF1 = param.as_int();
 			if( settings_callback.integrationTimeTOF1 < 0 ) settings_callback.integrationTimeTOF1 = 0;
 			if( settings_callback.integrationTimeTOF1 > 4000 ) settings_callback.integrationTimeTOF1 = 4000;
 		}
-		else if (param.get_name() == "F. integrationTime1")
+		else if (param.get_name() == "H. integrationTime1")
 		{
 			settings_callback.integrationTimeTOF2 = param.as_int();
 			if( settings_callback.integrationTimeTOF2 < 0 ) settings_callback.integrationTimeTOF2 = 0;
 			if( settings_callback.integrationTimeTOF2 > 4000 ) settings_callback.integrationTimeTOF2 = 4000;
 		}
-		else if (param.get_name() == "G. integrationTime2")
+		else if (param.get_name() == "I. integrationTime2")
 		{
 			settings_callback.integrationTimeTOF3 = param.as_int();
 			if( settings_callback.integrationTimeTOF3 < 0 ) settings_callback.integrationTimeTOF3 = 0;
 			if( settings_callback.integrationTimeTOF3 > 4000 ) settings_callback.integrationTimeTOF3 = 4000;
 		}
-		else if (param.get_name() == "H. integrationTimeGray")
+		else if (param.get_name() == "J. integrationTimeGray")
 		{
 			settings_callback.integrationTimeGray = param.as_int();
 			if( settings_callback.integrationTimeGray < 0 ) settings_callback.integrationTimeGray = 0;
 			if( settings_callback.integrationTimeGray > 40000 ) settings_callback.integrationTimeGray = 40000;
 		}
-		else if (param.get_name() == "I. temporalFilterFactor")
+		else if (param.get_name() == "K. temporalFilterFactor")
 		{
 			settings_callback.kalmanFactor = param.as_double();
 		}
-		else if (param.get_name() == "J. temporalFilterThreshold")
+		else if (param.get_name() == "L. temporalFilterThreshold")
 		{
 			settings_callback.kalmanThreshold = param.as_int();
 		}
-		else if (param.get_name() == "K. medianFilter")
+		else if (param.get_name() == "M. medianFilter")
 		{
 			settings_callback.medianFilter = param.as_bool();
 		}
-		else if (param.get_name() == "L. averageFilter")
+		else if (param.get_name() == "N. averageFilter")
 		{
 			settings.averageFilter = param.as_bool();
 		}
-		else if (param.get_name() == "M. edgeThreshold")
+		else if (param.get_name() == "O. edgeThreshold")
 		{
 			settings_callback.edgeThreshold = param.as_int();
 		}
-		else if (param.get_name() == "N. minAmplitude")
+		else if (param.get_name() == "P. minAmplitude")
 		{
 			settings_callback.minAmplitude = param.as_int();
 		}
-		else if (param.get_name() == "O. minDistance")
+		else if (param.get_name() == "Q. minDistance")
 		{
 			settings_callback.minDistance = param.as_int();
 		}
-		else if (param.get_name() == "P. maxDistance")
+		else if (param.get_name() == "R. maxDistance")
 		{
 			settings_callback.maxDistance = param.as_int();
 		}
-		else if (param.get_name() == "Q. roiLeftX")
+		else if (param.get_name() == "S. roiLeftX")
 		{
 			settings_callback.roi_leftX= param.as_int();
 		}
-		else if (param.get_name() == "R. roiTopY")
+		else if (param.get_name() == "T. roiTopY")
 		{
 			settings_callback.roi_topY= param.as_int();
 		}
-		else if (param.get_name() == "S. roiRightX")
+		else if (param.get_name() == "U. roiRightX")
 		{
 			settings_callback.roi_rightX= param.as_int();
 		}
-		else if (param.get_name() == "T. roiBottomY")
+		else if (param.get_name() == "V. roiBottomY")
 		{
 			settings_callback.roi_bottomY= param.as_int();
 		}
-		else if (param.get_name() == "U. lensType")
+		else if (param.get_name() == "W. lensType")
 		{
 			settings_callback.lenstype= param.as_int();
-		}
-		else if (param.get_name() == "V. triggerSingleShot")
-		{
-			settings_callback.triggerSingleShot = param.as_bool();
-		}
-		else if (param.get_name() == "W. cvShow")
-		{
-			bool showCv = param.as_bool();
-			if( settings_callback.cvShow != showCv ){
-				settings_callback.cvShow = showCv;
-				settings_callback.changedCvShow = true;
-			}
 		}
 		else if( param.get_name() == "X. frameRate")
 		{
@@ -467,7 +509,7 @@ void Nsl3130Driver::setParameters()
         framePeriod = 1.0 / gSettings->frameRate * 1000.0f; // msec
 
 		int modFrequency = gSettings->modFrequency == 0 ? 1 : gSettings->modFrequency == 1 ? 0 : gSettings->modFrequency > 3 ? 3 : gSettings->modFrequency;
-		int modChannel = gSettings->modChannel;
+		int modChannel = gSettings->modChannel < 0 ? 0 : gSettings->modChannel > 15 ? 15 : gSettings->modChannel;
 
         communication.setHDRMode(gSettings->hdrMode);
         communication.setIntegrationTime3d(gSettings->integrationTimeTOF1, gSettings->integrationTimeTOF2, gSettings->integrationTimeTOF3, gSettings->integrationTimeGray);        
