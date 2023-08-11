@@ -95,6 +95,9 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 	  colorVector.push_back(cv::Vec3b(blue, green, red));
 	}
 
+	frameCnt = 0;
+	frameAddCnt = 0;
+
     numCols = 320;
     numRows = 240;
     frameSeq = 0;
@@ -110,7 +113,7 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
     gSettings->runVideo = false;
 	gSettings->imageType = Nsl3130Image::ImageType_e::DISTANCE_AMPLITUDE;
 	gSettings->lenstype = 1;
-	gSettings->frameRate = 10;
+	gSettings->frameRate = 20; //fps
 	gSettings->lensCenterOffsetX = 0;
 	gSettings->lensCenterOffsetY = 0;
 	gSettings->hdrMode = 0;
@@ -195,7 +198,6 @@ void Nsl3130Driver::thread_callback()
     while(runThread)
     {
         update();
-		sleep(0);
     }
 
 	cv::destroyAllWindows();
@@ -227,6 +229,7 @@ void Nsl3130Driver::parameterInit()
 	rclcpp::Parameter pLensType("U. lensType", settings.lenstype);
 	rclcpp::Parameter pTriggerSingleShot("V. triggerSingleShot", settings.triggerSingleShot);
 	rclcpp::Parameter pCvshow("W. cvShow", settings.cvShow);
+	rclcpp::Parameter pFps("X. frameRate", settings.frameRate);
 	
 	this->declare_parameter<int>("A. imageType", settings.imageType);
 	this->declare_parameter<int>("B. modFrequency", settings.modFrequency);		
@@ -251,6 +254,7 @@ void Nsl3130Driver::parameterInit()
 	this->declare_parameter<int>("U. lensType", settings.lenstype);
 	this->declare_parameter<bool>("V. triggerSingleShot", settings.triggerSingleShot);
 	this->declare_parameter<bool>("W. cvShow", settings.cvShow);
+	this->declare_parameter<int>("X. frameRate", settings.frameRate);
 	
 
 	this->set_parameter(pImageType);
@@ -276,6 +280,7 @@ void Nsl3130Driver::parameterInit()
 	this->set_parameter(pLensType);
 	this->set_parameter(pTriggerSingleShot);
 	this->set_parameter(pCvshow);
+	this->set_parameter(pFps);
 	
 
 
@@ -392,6 +397,11 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 				settings_callback.changedCvShow = true;
 			}
 		}
+		else if( param.get_name() == "X. frameRate")
+		{
+			settings_callback.frameRate = param.as_int();
+			if( settings_callback.frameRate == 0 ) settings_callback.frameRate = 1;
+		}
 	}
     
 	printf("parametersCallback() stream = %d type =%d\n", settings_callback.startStream, settings_callback.imageType);
@@ -410,6 +420,15 @@ void Nsl3130Driver::closeCommunication()
 
 void Nsl3130Driver::update()
 {
+    std::chrono::system_clock::time_point timeNow = std::chrono::system_clock::now();
+	std::chrono::milliseconds elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - one_second);
+
+    if(elapsed_time.count() >= 1000 ){
+		one_second = timeNow;
+		frameCnt = frameAddCnt;
+		frameAddCnt = 0;
+	}
+
     if(gSettings->runVideo && !gSettings->updateParam){
         updateData(); //streaming
 
@@ -432,7 +451,7 @@ void Nsl3130Driver::setParameters()
 
         printf("update parameters hdr = %d\n", gSettings->hdrMode);
 
-        framePeriod = 1.0 / gSettings->frameRate;
+        framePeriod = 1.0 / gSettings->frameRate * 1000.0f; // msec
 
 		int modulationFreq = gSettings->modFrequency == 0 ? 1 : gSettings->modFrequency == 1 ? 0 : gSettings->modFrequency > 3 ? 3 : gSettings->modFrequency;
 		int modulationCh = gSettings->modChannel > 15 ? 15 : gSettings->modChannel < 0 ? 0 : gSettings->modChannel;
@@ -462,12 +481,11 @@ void Nsl3130Driver::setParameters()
 void Nsl3130Driver::updateData()
 {
     std::chrono::system_clock::time_point timeNow = std::chrono::system_clock::now();
-	std::chrono::seconds elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(timeNow - timeLast);
-//    double elapsed_time = timeNow.timeToSec() - timeLast.timeToSec();
+	std::chrono::milliseconds elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - timeLast);
 
-    if(elapsed_time.count() >= framePeriod || true )
+    if(elapsed_time.count() >= framePeriod )
 	{
-
+//		printf("milli = %ld period = %.1f\n", elapsed_time.count(), framePeriod);
         timeLast = timeNow;
 
 //        printf("Type = %d\n", gSettings->imageType);
@@ -777,6 +795,8 @@ void Nsl3130Driver::updateGrayscaleFrame(std::shared_ptr<com_lib::Nsl3130Image> 
 	auto data_stamp = _ros_clock.now();
 	cv::Mat amplitudeLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
 
+	frameAddCnt++;
+
     if(gSettings->enableTemperature){
         updateTemperature(image->getTemperature());
     }
@@ -847,6 +867,8 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
     std::vector<uint8_t>& data = image->getData();
 	int offset = image->getOffset();
 	auto data_stamp = _ros_clock.now();
+
+	frameAddCnt++;
 
     cv::Mat imageLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
 
@@ -929,6 +951,8 @@ void Nsl3130Driver::updateDistanceAmplitudeFrame(std::shared_ptr<Nsl3130Image> i
     std::vector<uint8_t>& data = image->getData();
 	int offset = image->getOffset();
 	auto data_stamp = _ros_clock.now();
+
+	frameAddCnt++;
 
     cv::Mat imageLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
 	cv::Mat amplitudeLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
@@ -1126,6 +1150,12 @@ cv::Mat Nsl3130Driver::addDistanceInfo(cv::Mat distMat, std::shared_ptr<Nsl3130I
 	}
 	else{
 		cv::Mat infoImage(50, distMat.cols, CV_8UC3, cv::Scalar(255, 255, 255));
+
+		// frameCnt
+		std::string dist_caption;
+		dist_caption = cv::format("frame rate : %d fps", frameCnt);
+		putText(infoImage, dist_caption.c_str(), cv::Point(10, 30), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(0, 0, 0));
+
 		cv::vconcat(distMat, infoImage, distMat);
 	}
 

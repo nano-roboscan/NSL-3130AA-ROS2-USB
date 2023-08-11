@@ -347,7 +347,6 @@ ErrorNumber_e SerialConnection::readRxData(int size)
             return ERROR_NUMBER_SERIAL_PORT_ERROR;
         }else if(n == 0 && i < size-1){
             printf("serialConnection->readRxData %d bytes from %d received\n", i, size);
-			
 			openPort("");
             return ERROR_NUMBER_SERIAL_PORT_ERROR;
         }

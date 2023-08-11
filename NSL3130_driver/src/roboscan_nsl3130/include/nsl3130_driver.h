@@ -26,7 +26,7 @@
 
 struct Settings{
 
-  double frameRate;
+  int frameRate;
   bool startStream;
   bool triggerSingleShot;
   bool runVideo;
@@ -91,6 +91,9 @@ private:
     double framePeriod;
 	rclcpp::Clock _ros_clock;
     std::chrono::system_clock::time_point timeLast;
+    std::chrono::system_clock::time_point one_second;
+	int frameCnt;
+	int frameAddCnt;
     uint frameSeq;    
 
 	static Settings *gSettings;
