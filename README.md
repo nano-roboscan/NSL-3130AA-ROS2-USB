@@ -6,15 +6,23 @@
  - ROS2 Humble
  - OPENCV 4.5.4
  
- 
-2. Build NSL-3130AA demo
+2. Define USB rules
+```
+$ sudo vi /etc/udev/rules.d/defined_lidar.rules
+KERNEL=="ttyACM*", ATTRS{idVendor}=="1fc9", ATTRS{idProduct}=="0094", MODE:="0777",SYMLINK+="ttyLidar"
+
+$ service udev reload
+$ service udev restart
+```
+
+3. Build NSL-3130AA demo
 ```
 $ cd NSL3130_driver
 $ colcon build --packages-select roboscan_nsl3130
 $ . install/setup.bash
 ```
  
-3. Start commands
+4. Start commands
 ```
 $ ros2 run roboscan_nsl3130 roboscan_publish_node
 $ ros2 launch roboscan_nsl3130 camera.Launch.py
@@ -44,7 +52,6 @@ $ rqt
 
 
 ```
-
 cvShow : Image Viewer on/off
 channel : 0 ~ 15
 
