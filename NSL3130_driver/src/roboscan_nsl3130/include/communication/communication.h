@@ -53,9 +53,9 @@ public:
     void getDcs(uint8_t streaming);
     void stopStream();
     void startStream();
-    void getGrayscale(uint8_t streaming);
-    void getDistance(uint8_t streaming);
-    void getDistanceAmplitude(uint8_t streaming);
+    ErrorNumber_e getGrayscale(uint8_t streaming);
+    ErrorNumber_e getDistance(uint8_t streaming);
+    ErrorNumber_e getDistanceAmplitude(uint8_t streaming);
 
     //signals
     boost::signals2::signal<void ()> sigReceivedAnswer;
@@ -85,6 +85,7 @@ private:
     ErrorNumber_e sendCommandInt16(const uint8_t command, const int16_t payload);
     ErrorNumber_e sendCommand2xUint16(const uint8_t command, const uint16_t payload0, const uint16_t payload1);
 
+	void flushBuffer();
     void sendErrorSignal(const ErrorNumber_e errorNumber);
     bool openInternal(std::string &portName);
     void processIdentification(const std::vector<uint8_t> &array);
@@ -109,7 +110,7 @@ private:
     unsigned int xMax;
     unsigned int yMax;
     bool reopenPort;  
-
+	bool flushing;
 	bool hdrSpatialMode;
 
 public:

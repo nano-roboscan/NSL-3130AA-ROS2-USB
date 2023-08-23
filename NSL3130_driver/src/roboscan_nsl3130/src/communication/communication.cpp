@@ -26,11 +26,6 @@
 #define GET_INTEGRATION_TIME_DIS_SIZE  13
 #define GET_CHIP_INFORMATION_SIZE      18
 #define GET_FIRMWARE_VERSION_SIZE      18
-#define GET_DISTANCE_GRAYSCALE_SIZE 	28880
-#define GET_DISTANCE_AMPLITUDE_SIZE 	38480
-#define GET_DISTANCE_SIZE           	19280
-#define GET_GRAYSCALE_SIZE           	9680
-
 
 using namespace std;
 
@@ -58,8 +53,9 @@ Communication::Communication()
     xMax = 319;
     yMax = 239;
     reopenPort = false;
-
+	flushing = false;
 	hdrSpatialMode = false;
+	
 }
 
 Communication::~Communication()
@@ -67,6 +63,30 @@ Communication::~Communication()
     delete serialConnection;
 }
 
+void Communication::flushBuffer()
+{
+	ErrorNumber_e ret = ERROR_NUMMBER_NO_ERROR;
+	int err_cnt = 0;
+
+	if( flushing ) return;
+	
+	do{
+		printf("start flushRx\n");
+
+		flushing = true;
+		serialConnection->flushRx();
+
+		setRoi(xMin, yMin, xMax, yMax);
+		ret = getDistanceAmplitude(com_const::Acquisition::VALUE_SINGLE_MEASUREMENT);
+
+		serialConnection->flushRx();
+
+		err_cnt++;
+		flushing = false;
+
+		printf("end flushRx ret = %d\n", ret);
+	}while( ret != ERROR_NUMMBER_NO_ERROR && err_cnt < 10 );
+}
 
 /**
  * @brief helper function to send the command
@@ -87,7 +107,13 @@ ErrorNumber_e Communication::sendCommand(uint8_t *data, int dataLen, int answerS
 
     //ROS_DEBUG("read command expected size: %d", answerSize);
 
-    return serialConnection->readRxData(answerSize);
+    ErrorNumber_e ret = serialConnection->readRxData(answerSize);
+	if( ret == ERROR_NUMBER_SERIAL_PORT_ERROR ){
+		serialConnection->openPort("");
+		flushBuffer();
+	}
+
+	return ret;
 }
 
 
@@ -125,6 +151,7 @@ bool Communication::open(string &portName)
     if(connected){
         state = COMMUNICATION_STATE_NORMAL;
         timeout = TIMEOUT_NORMAL;
+		flushBuffer();
     }
     return connected;
 }
@@ -584,7 +611,7 @@ ErrorNumber_e Communication::getTemperature(double &temperature)
  *
  * This function will be answered by the signal "receivedGrayscale"
  */
-void Communication::getGrayscale(uint8_t streaming)
+ErrorNumber_e Communication::getGrayscale(uint8_t streaming)
 {
     //int dataSize = 153635;
     int dataSize = 2 * (xMax - xMin + 1) * (yMax - yMin + 1);
@@ -592,7 +619,7 @@ void Communication::getGrayscale(uint8_t streaming)
 	dataSize += (13 + 25);
 
     //ROS_DEBUG("Communication::getGrayscale()");  //TODO remove
-    sendCommandSingleByte(com_const::CommandList::COMMAND_GET_GRAYSCALE, streaming, dataSize, false);
+    return sendCommandSingleByte(com_const::CommandList::COMMAND_GET_GRAYSCALE, streaming, dataSize, false);
 }
 
 /**
@@ -602,14 +629,14 @@ void Communication::getGrayscale(uint8_t streaming)
  *
  * @param acquisitionMode Mode for acquisition: 0 = single, 2 = auto repeat, 1 = stream
  */
-void Communication::getDistance(uint8_t streaming)
+ErrorNumber_e Communication::getDistance(uint8_t streaming)
 {      
     int dataSize = 2 * (xMax - xMin + 1) * (yMax - yMin + 1);
 	if( hdrSpatialMode ) dataSize /= 2;
 	dataSize += (13 + 25);
 
     //ROS_DEBUG("Communication::getDistance()");
-    sendCommandSingleByte(com_const::CommandList::COMMAND_GET_DISTANCE, streaming, dataSize, false);
+    return sendCommandSingleByte(com_const::CommandList::COMMAND_GET_DISTANCE, streaming, dataSize, false);
 }
 
 /**
@@ -617,14 +644,14 @@ void Communication::getDistance(uint8_t streaming)
  *
  * This function will be answered by the signal "receivedDistanceAmplitude"
  */
-void Communication::getDistanceAmplitude(uint8_t streaming)
+ErrorNumber_e Communication::getDistanceAmplitude(uint8_t streaming)
 {
     //int dataSize = 307235;
     int dataSize = 4 * (xMax - xMin + 1) * (yMax - yMin + 1);
 	if( hdrSpatialMode ) dataSize /= 2;
 	dataSize += (13 + 25);
     //ROS_DEBUG("Communication::getDistanceAmplitude()");
-    sendCommandSingleByte(com_const::CommandList::COMMAND_GET_DISTANCE_AMPLITUDE, streaming, dataSize);
+    return sendCommandSingleByte(com_const::CommandList::COMMAND_GET_DISTANCE_AMPLITUDE, streaming, dataSize);
 }
 
 /**

@@ -58,7 +58,6 @@ bool SerialConnection::openPort(std::string portName)
     printf ("openPort: %s  fd= %d\n", portName.c_str(), fileID);
     setInterfaceAttribs(B4000000);  // set speed to 10000000 bps, 8n1 (no parity)    
 
-	flushRx();
     return true;
 }
 
@@ -203,23 +202,24 @@ int SerialConnection::setInterfaceAttribs(int speed)
     // disable IGNBRK for mismatched speed tests; otherwise receive break as \000 chars
 
     tty.c_oflag = 0;                // no remapping, no delays
-    tty.c_oflag &= ~(ONLCR | OCRNL); //TODO...
+//    tty.c_oflag &= ~(ONLCR | OCRNL); //TODO...
 
     tty.c_lflag = 0;                // no signaling chars, no echo,
-    tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN); //TODO...
+//    tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN); //TODO...
 
-    tty.c_iflag &= ~IGNBRK;         // disable break processing
-    tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
-    tty.c_iflag &= ~(INLCR | IGNCR | ICRNL); //TODO...
+	tty.c_iflag = (IGNPAR|IGNBRK);
+//    tty.c_iflag &= ~IGNBRK;         // disable break processing
+//    tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+//    tty.c_iflag &= ~(INLCR | IGNCR | ICRNL); //TODO...
 
     tty.c_cc[VMIN]  = 0;            // non-blocking read
     tty.c_cc[VTIME] = 5;            // 0.5 second read timeout
 
-    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars                
-    tty.c_cflag &= ~(PARENB | PARODD);  // shut off parity
-    tty.c_cflag &= ~CSTOPB;    //one stop bit
+	tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars                
+	tty.c_cflag &= ~(PARENB | PARODD);  // shut off parity
+	tty.c_cflag &= ~CSTOPB;    //one stop bit
+	tty.c_cflag &= ~CRTSCTS;
     tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls   
-    tty.c_cflag |= CRTSCTS;   //data DTR hardware control do not use it
 
     tcflush(fileID, TCIOFLUSH);
 
@@ -298,7 +298,7 @@ int SerialConnection::flushRx(void)
 
 	while(true)
 	{
-		n = read(fileID, buf, 4096);
+		n = read(fileID, buf, 5000);
 
 		if(n > 0){
 			readflushData += n;
@@ -343,11 +343,9 @@ ErrorNumber_e SerialConnection::readRxData(int size)
             memcpy(rxArray + i, buf, n);
         }else if(n == -1){
             printf("Error on  SerialConnection::readRxData= -1\n");
-			openPort("");
             return ERROR_NUMBER_SERIAL_PORT_ERROR;
         }else if(n == 0 && i < size-1){
             printf("serialConnection->readRxData %d bytes from %d received\n", i, size);
-			openPort("");
             return ERROR_NUMBER_SERIAL_PORT_ERROR;
         }
 
