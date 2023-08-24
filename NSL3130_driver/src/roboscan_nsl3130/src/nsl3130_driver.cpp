@@ -325,55 +325,36 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 		}
 		else if (param.get_name() == "D. imageType")
 		{
-#if 1
-			string imgType = param.as_string();
-			printf("imgType = %s\n", imgType.c_str());
-#else
 			int imgType = param.as_int();
-			if( imgType < 0 ) imgType = 0;
-			if( imgType > 2 ) imgType = 2;
 			
 			if( settings_callback.imageType != imgType ){
 				settings_callback.imageType = imgType;
 				settings_callback.changedCvShow = true;
 			}
-#endif			
 		}
 		else if (param.get_name() == "E. modFrequency")
 		{
 			settings_callback.modFrequency = param.as_int();
-			if( settings_callback.modFrequency < 0 ) settings_callback.modFrequency = 0;
-			if( settings_callback.modFrequency > 3 ) settings_callback.modFrequency = 3;
 		}
 		else if (param.get_name() == "F. Hdr")
 		{
 			settings_callback.hdrMode = param.as_int();
-			if( settings_callback.hdrMode < 0 ) settings_callback.hdrMode = 0;
-			if( settings_callback.hdrMode > 2 ) settings_callback.hdrMode = 2;
 		}
 		else if (param.get_name() == "G. integrationTime0")
 		{
 			settings_callback.integrationTimeTOF1 = param.as_int();
-			if( settings_callback.integrationTimeTOF1 < 0 ) settings_callback.integrationTimeTOF1 = 0;
-			if( settings_callback.integrationTimeTOF1 > 4000 ) settings_callback.integrationTimeTOF1 = 4000;
 		}
 		else if (param.get_name() == "H. integrationTime1")
 		{
 			settings_callback.integrationTimeTOF2 = param.as_int();
-			if( settings_callback.integrationTimeTOF2 < 0 ) settings_callback.integrationTimeTOF2 = 0;
-			if( settings_callback.integrationTimeTOF2 > 4000 ) settings_callback.integrationTimeTOF2 = 4000;
 		}
 		else if (param.get_name() == "I. integrationTime2")
 		{
 			settings_callback.integrationTimeTOF3 = param.as_int();
-			if( settings_callback.integrationTimeTOF3 < 0 ) settings_callback.integrationTimeTOF3 = 0;
-			if( settings_callback.integrationTimeTOF3 > 4000 ) settings_callback.integrationTimeTOF3 = 4000;
 		}
 		else if (param.get_name() == "J. integrationTimeGray")
 		{
 			settings_callback.integrationTimeGray = param.as_int();
-			if( settings_callback.integrationTimeGray < 0 ) settings_callback.integrationTimeGray = 0;
-			if( settings_callback.integrationTimeGray > 40000 ) settings_callback.integrationTimeGray = 40000;
 		}
 		else if (param.get_name() == "K. temporalFilterFactor")
 		{
@@ -389,7 +370,7 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 		}
 		else if (param.get_name() == "N. averageFilter")
 		{
-			settings.averageFilter = param.as_bool();
+			settings_callback.averageFilter = param.as_bool();
 		}
 		else if (param.get_name() == "O. edgeThreshold")
 		{
@@ -406,6 +387,7 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 		else if (param.get_name() == "R. maxDistance")
 		{
 			settings_callback.maxDistance = param.as_int();
+			if( settings_callback.maxDistance == 0 ) settings_callback.maxDistance = 1;
 		}
 		else if (param.get_name() == "S. roiLeftX")
 		{
@@ -677,22 +659,21 @@ int Nsl3130Driver::setDistanceColor(cv::Mat &imageLidar, int x, int y, int value
 //		imageLidar.at<Vec3b>(y, x)[2] = 255; 
 		imageLidar.at<cv::Vec3b>(y, x) = colorVector.at(colorVector.size()-1);
 	}
-	else if (value < 0)
+	else if (value < gSettings->minDistance)
 	{
 		imageLidar.at<cv::Vec3b>(y, x)[0] = 0;
 		imageLidar.at<cv::Vec3b>(y, x)[1] = 0;
 		imageLidar.at<cv::Vec3b>(y, x)[2] = 0; 
 	}
-	else if (value > settings.maxDistance)
+	else if (value > gSettings->maxDistance)
 	{
 		imageLidar.at<cv::Vec3b>(y, x)[0] = 0;
 		imageLidar.at<cv::Vec3b>(y, x)[1] = 0;
 		imageLidar.at<cv::Vec3b>(y, x)[2] = 0; 
 	}
 	else{
-		int index = colorVector.size() - (value*(NSL3130_NUM_COLORS / settings.maxDistance));
-		if( index < 0 ){
-			printf("error index = %d\n", index);
+		int index = colorVector.size() - (value*(NSL3130_NUM_COLORS / (double)gSettings->maxDistance));
+		if( index < 0 || index == NSL3130_NUM_COLORS ){
 			index = colorVector.size()-1;
 		}
 		else if( index > (int)colorVector.size() ){
@@ -888,7 +869,7 @@ void Nsl3130Driver::updateGrayscaleFrame(std::shared_ptr<com_lib::Nsl3130Image> 
 
 	} //end if enableImages
 
-	if(settings.cvShow)
+	if(gSettings->cvShow)
 	{
 		getMouseEvent(mouseXpos, mouseYpos);
 		amplitudeLidar = addDistanceInfo(amplitudeLidar, image);
@@ -960,7 +941,7 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
 
 	publisherPointCloud(image);
 
-	if(settings.cvShow)
+	if(gSettings->cvShow)
 	{
 		getMouseEvent(mouseXpos, mouseYpos);
 		imageLidar = addDistanceInfo(imageLidar, image);
@@ -1053,7 +1034,7 @@ void Nsl3130Driver::updateDistanceAmplitudeFrame(std::shared_ptr<Nsl3130Image> i
 
 	publisherPointCloud(image);
 
-	if(settings.cvShow)
+	if(gSettings->cvShow)
 	{
 		getMouseEvent(mouseXpos, mouseYpos);
 		cv::hconcat(imageLidar, amplitudeLidar, imageLidar);
@@ -1087,7 +1068,7 @@ void Nsl3130Driver::publisherPointCloud(std::shared_ptr<Nsl3130Image> image)
 
 				int distance = dist2BData[k];
 
-				if (distance > 0 && distance < gSettings->maxDistance)
+				if (distance > gSettings->minDistance && distance < gSettings->maxDistance)
 				{
 					double px, pz, py;
 					cartesian.transformPixel(x, y, (double)(distance), px, py, pz);
