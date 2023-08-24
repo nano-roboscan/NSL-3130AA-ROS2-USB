@@ -91,23 +91,23 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 
 	for(int i=0;  i< numSteps; i++)
 	{
-	  createColorMapPixel(numSteps, i, red, green, blue);
-	  colorVector.push_back(cv::Vec3b(blue, green, red));
+		createColorMapPixel(numSteps, i, red, green, blue);
+		colorVector.push_back(cv::Vec3b(blue, green, red));
 	}
 
 	frameCnt = 0;
 	frameAddCnt = 0;
 
-    numCols = 320;
-    numRows = 240;
-    frameSeq = 0;
-    imageSize8 = 0;
-    imageSize16_1 = 0;
-    imageSize16_2 = 0;
-    sensorPointSizeMM = 0.02; //sensor pixel size mm
-    lastSingleShot = false;
-    lastStreaming = false;
-    strFrameID = "roboscan_frame";
+	numCols = 320;
+	numRows = 240;
+	frameSeq = 0;
+	imageSize8 = 0;
+	imageSize16_1 = 0;
+	imageSize16_2 = 0;
+	sensorPointSizeMM = 0.02; //sensor pixel size mm
+	lastSingleShot = false;
+	lastStreaming = false;
+	strFrameID = "roboscan_frame";
 
 	gSettings = &settings;
 
@@ -136,14 +136,14 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 	gSettings->minDistance = 30;
 	gSettings->maxDistance = 12500;
 
-	
-    gSettings->enableCartesian   = true;
-    gSettings->enableTemperature = false;
-    gSettings->enableImages      = true;
-    gSettings->enablePointCloud  = true;
 
-    gSettings->roi_leftX   = 0;
-    gSettings->roi_rightX  = 319;
+	gSettings->enableCartesian   = true;
+	gSettings->enableTemperature = false;
+	gSettings->enableImages      = true;
+	gSettings->enablePointCloud  = true;
+
+	gSettings->roi_leftX   = 0;
+	gSettings->roi_rightX  = 319;
 	gSettings->roi_topY = 0;
 	gSettings->roi_bottomY = 239;
 
@@ -156,47 +156,45 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 
 	parameterInit();
 
-    auto qos_profile = rclcpp::QoS(rclcpp::KeepLast(10));
-    imagePublisher1 = create_publisher<sensor_msgs::msg::Image>("roboscanDistance", qos_profile); 
-    imagePublisher2 = create_publisher<sensor_msgs::msg::Image>("roboscanAmplitude", qos_profile); 
-    pointCloud2Publisher = create_publisher<sensor_msgs::msg::PointCloud2>("roboscanPointCloud", qos_profile); 
+	auto qos_profile = rclcpp::QoS(rclcpp::KeepLast(10));
+	imagePublisher1 = create_publisher<sensor_msgs::msg::Image>("roboscanDistance", qos_profile); 
+	imagePublisher2 = create_publisher<sensor_msgs::msg::Image>("roboscanAmplitude", qos_profile); 
+	pointCloud2Publisher = create_publisher<sensor_msgs::msg::PointCloud2>("roboscanPointCloud", qos_profile); 
 
-    initCommunication();
+	initCommunication();
 
-    communication.sigReceivedGrayscale.connect(boost::bind(&Nsl3130Driver::updateGrayscaleFrame, this, _1));
-    communication.sigReceivedDistance.connect(boost::bind(&Nsl3130Driver::updateDistanceFrame, this, _1));
-    communication.sigReceivedDistanceAmplitude.connect(boost::bind(&Nsl3130Driver::updateDistanceAmplitudeFrame, this, _1));    
+	communication.sigReceivedGrayscale.connect(boost::bind(&Nsl3130Driver::updateGrayscaleFrame, this, _1));
+	communication.sigReceivedDistance.connect(boost::bind(&Nsl3130Driver::updateDistanceFrame, this, _1));
+	communication.sigReceivedDistanceAmplitude.connect(boost::bind(&Nsl3130Driver::updateDistanceAmplitudeFrame, this, _1));    
 
-    gSettings->updateParam = true;
-    timeLast = std::chrono::system_clock::now();
+	gSettings->updateParam = true;
+	timeLast = std::chrono::system_clock::now();
 
-    setParameters();
-	
-    callback_handle_ = this->add_on_set_parameters_callback(std::bind(&Nsl3130Driver::parametersCallback, this, std::placeholders::_1));
-    
-    runThread = true;
-    publisherThread.reset(new boost::thread(boost::bind(&Nsl3130Driver::thread_callback, this)));
+	setParameters();
+
+	callback_handle_ = this->add_on_set_parameters_callback(std::bind(&Nsl3130Driver::parametersCallback, this, std::placeholders::_1));
+
+	runThread = true;
+	publisherThread.reset(new boost::thread(boost::bind(&Nsl3130Driver::thread_callback, this)));
 }
 
 Nsl3130Driver::~Nsl3130Driver()
 {
-    printf("Nsl3130Driver::~Nsl3130Driver()\n");
-    runThread = false;
-    publisherThread->join();
+	printf("Nsl3130Driver::~Nsl3130Driver()\n");
+	runThread = false;
+	publisherThread->join();
 
-//    communication.stopStream();
-//    sleep(1);
-    communication.close();    
-    printf("END ~Nsl3130Driver()\n");
+	communication.close();    
+	printf("END ~Nsl3130Driver()\n");
 }
 
 void Nsl3130Driver::thread_callback()
 {
 	printf("start thread_callback\n");
-    while(runThread)
-    {
-        update();
-    }
+	while(runThread)
+	{
+		update();
+	}
 
 	cv::destroyAllWindows();
 	printf("end thread_callback\n");
@@ -205,9 +203,9 @@ void Nsl3130Driver::thread_callback()
 void Nsl3130Driver::parameterInit()
 {
 	rcl_interfaces::msg::ParameterDescriptor descriptor;
-    rcl_interfaces::msg::IntegerRange range;
+	rcl_interfaces::msg::IntegerRange range;
 	rcl_interfaces::msg::ParameterDescriptor descriptorFloat;
-    rcl_interfaces::msg::FloatingPointRange floating_range;
+	rcl_interfaces::msg::FloatingPointRange floating_range;
 
 
 	this->declare_parameter<bool>("A. startStream", settings.startStream);	
@@ -215,108 +213,84 @@ void Nsl3130Driver::parameterInit()
 	this->declare_parameter<bool>("C. cvShow", settings.cvShow);
 
 
-    range.set__from_value(0).set__to_value(2).set__step(1);
+	range.set__from_value(0).set__to_value(2).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("D. imageType", settings.imageType, descriptor);
-//	this->declare_parameter<int>("D. imageType", settings.imageType);
 
-    range.set__from_value(0).set__to_value(3).set__step(1);
+	range.set__from_value(0).set__to_value(3).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("E. modFrequency", settings.modFrequency, descriptor);
-//	this->declare_parameter<int>("E. modFrequency", settings.modFrequency);		
 
-
-    range.set__from_value(0).set__to_value(2).set__step(1);
+	range.set__from_value(0).set__to_value(2).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("F. Hdr", 0, descriptor);	
-//	this->declare_parameter<int>("F. Hdr", settings.hdrMode);
 
-    range.set__from_value(0).set__to_value(4000).set__step(1);
+	range.set__from_value(0).set__to_value(4000).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("G. integrationTime0", settings.integrationTimeTOF1, descriptor);
-//	this->declare_parameter<int>("G. integrationTime0", settings.integrationTimeTOF1);
 
-    range.set__from_value(0).set__to_value(4000).set__step(1);
+	range.set__from_value(0).set__to_value(4000).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("H. integrationTime1", settings.integrationTimeTOF2, descriptor);
-//	this->declare_parameter<int>("H. integrationTime1", settings.integrationTimeTOF2);
 
-    range.set__from_value(0).set__to_value(4000).set__step(1);
+	range.set__from_value(0).set__to_value(4000).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("I. integrationTime2", settings.integrationTimeTOF3, descriptor);
-//	this->declare_parameter<int>("I. integrationTime2", settings.integrationTimeTOF3);
-	
-    range.set__from_value(0).set__to_value(40000).set__step(1);
+
+	range.set__from_value(0).set__to_value(40000).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("J. integrationTimeGray", settings.integrationTimeGray, descriptor);
-//	this->declare_parameter<int>("J. integrationTimeGray", settings.integrationTimeGray);
 
-
-    floating_range.set__from_value(0.0).set__to_value(1.0).set__step(0.1);
+	floating_range.set__from_value(0.0).set__to_value(1.0).set__step(0.1);
 	descriptorFloat.floating_point_range= {floating_range};
 	this->declare_parameter("K. temporalFilterFactor", settings.kalmanFactor, descriptorFloat);
-//	this->declare_parameter<double>("K. temporalFilterFactor", settings.kalmanFactor);
 
-    range.set__from_value(0).set__to_value(1000).set__step(1);
+	range.set__from_value(0).set__to_value(1000).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("L. temporalFilterThreshold", settings.kalmanThreshold, descriptor);
-//	this->declare_parameter<int>("L. temporalFilterThreshold", settings.kalmanThreshold);
 
 	this->declare_parameter<bool>("M. medianFilter", settings.medianFilter);
 	this->declare_parameter<bool>("N. averageFilter", settings.averageFilter);
 
-    range.set__from_value(0).set__to_value(5000).set__step(1);
+	range.set__from_value(0).set__to_value(5000).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("O. edgeThreshold", settings.edgeThreshold, descriptor);
-//	this->declare_parameter<int>("O. edgeThreshold", settings.edgeThreshold);
 
-    range.set__from_value(0).set__to_value(1000).set__step(1);
+	range.set__from_value(0).set__to_value(1000).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("P. minAmplitude", settings.minAmplitude, descriptor);
-//	this->declare_parameter<int>("P. minAmplitude", settings.minAmplitude);
 
-//	rcl_interfaces::msg::ParameterDescriptor descriptorMin;
-//  rcl_interfaces::msg::IntegerRange rangeMin;
-    range.set__from_value(0).set__to_value(1000).set__step(1);
+	range.set__from_value(0).set__to_value(1000).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("Q. minDistance", settings.minDistance, descriptor);
-//	this->declare_parameter<int>("Q. minDistance", settings.minDistance);
 
-    range.set__from_value(0).set__to_value(50000).set__step(1);
+	range.set__from_value(0).set__to_value(50000).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("R. maxDistance", settings.maxDistance, descriptor);
-//	this->declare_parameter<int>("R. maxDistance", settings.maxDistance);
 
-    range.set__from_value(0).set__to_value(124).set__step(4);
+	range.set__from_value(0).set__to_value(124).set__step(4);
 	descriptor.integer_range= {range};
 	this->declare_parameter("S. roiLeftX", settings.roi_leftX, descriptor);
-//	this->declare_parameter<int>("S. roiLeftX", settings.roi_leftX);
 
-    range.set__from_value(0).set__to_value(116).set__step(2);
+	range.set__from_value(0).set__to_value(116).set__step(2);
 	descriptor.integer_range= {range};
 	this->declare_parameter("T. roiTopY", settings.roi_topY, descriptor);
-//	this->declare_parameter<int>("T. roiTopY", settings.roi_topY);
-	
-    range.set__from_value(131).set__to_value(319).set__step(4);
+
+	range.set__from_value(131).set__to_value(319).set__step(4);
 	descriptor.integer_range= {range};
 	this->declare_parameter<int>("U. roiRightX", settings.roi_rightX, descriptor);
-//	this->declare_parameter<int>("U. roiRightX", settings.roi_rightX);
 
-    range.set__from_value(123).set__to_value(239).set__step(2);
+	range.set__from_value(123).set__to_value(239).set__step(2);
 	descriptor.integer_range= {range};
 	this->declare_parameter("V. roiBottomY", settings.roi_bottomY, descriptor);
-//	this->declare_parameter<int>("V. roiBottomY", settings.roi_bottomY);
 
-    range.set__from_value(0).set__to_value(2).set__step(1);
+	range.set__from_value(0).set__to_value(2).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("W. lensType", settings.lenstype, descriptor);
-//	this->declare_parameter<int>("W. lensType", settings.lenstype);
 
-    range.set__from_value(0).set__to_value(20).set__step(1);
+	range.set__from_value(0).set__to_value(20).set__step(1);
 	descriptor.integer_range= {range};
 	this->declare_parameter("X. frameRate", settings.frameRate, descriptor);
-//	this->declare_parameter<int>("X. frameRate", settings.frameRate);
-	
 
 
 	memcpy(&settings_callback, &settings, sizeof(settings_callback));
@@ -325,12 +299,12 @@ void Nsl3130Driver::parameterInit()
 
 rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( const std::vector<rclcpp::Parameter> &parameters)
 {
-    rcl_interfaces::msg::SetParametersResult result;
-    result.successful = true;
-    result.reason = "success";
-    // Here update class attributes, do some actions, etc.
-    
-    for (const auto &param: parameters)
+	rcl_interfaces::msg::SetParametersResult result;
+	result.successful = true;
+	result.reason = "success";
+	// Here update class attributes, do some actions, etc.
+
+	for (const auto &param: parameters)
 	{
 		if (param.get_name() == "A. startStream")
 		{
@@ -460,109 +434,105 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 	}
     
 	printf("parametersCallback() stream = %d type =%d\n", settings_callback.startStream, settings_callback.imageType);
-	
-    settings.updateParam = true;
-    return result;
+
+	settings.updateParam = true;
+	return result;
 }
 
 
 void Nsl3130Driver::closeCommunication()
 {
-    //ROS_DEBUG("Nsl3130Driver::closeCommunication()"); //TODo remove
-    communication.close();
+	//ROS_DEBUG("Nsl3130Driver::closeCommunication()"); //TODo remove
+	communication.close();
 }
 
 
 void Nsl3130Driver::update()
 {
-    std::chrono::system_clock::time_point timeNow = std::chrono::system_clock::now();
+	std::chrono::system_clock::time_point timeNow = std::chrono::system_clock::now();
 	std::chrono::milliseconds elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - one_second);
 
-    if(elapsed_time.count() >= 1000 ){
+	if(elapsed_time.count() >= 1000 ){
 		one_second = timeNow;
 		frameCnt = frameAddCnt;
 		frameAddCnt = 0;
 	}
 
-    if(gSettings->runVideo && !gSettings->updateParam){
-        updateData(); //streaming
+	if(gSettings->runVideo && !gSettings->updateParam){
+		updateData(); //streaming
 
-    }else if(gSettings->updateParam){
-        setParameters(); //update parameters
+	}else if(gSettings->updateParam){
+		setParameters(); //update parameters
 
-        if(gSettings->triggerSingleShot && gSettings->triggerSingleShot != lastSingleShot)
-            updateData(); //trigger single shot
+		if(gSettings->triggerSingleShot && gSettings->triggerSingleShot != lastSingleShot)
+			updateData(); //trigger single shot
 
-        lastSingleShot = gSettings->triggerSingleShot;
-    }
+		lastSingleShot = gSettings->triggerSingleShot;
+	}
 }
 
 void Nsl3130Driver::setParameters()
 {
-    if(gSettings->updateParam)
-    {
+	if(gSettings->updateParam)
+	{
 		memcpy(&settings, &settings_callback, sizeof(settings_callback));
-        gSettings->updateParam = false;
+		gSettings->updateParam = false;
 
-        printf("update parameters hdr = %d\n", gSettings->hdrMode);
+		printf("update parameters hdr = %d\n", gSettings->hdrMode);
 
-        framePeriod = 1.0 / gSettings->frameRate * 1000.0f; // msec
+		framePeriod = 1.0 / gSettings->frameRate * 1000.0f; // msec
 
 		int modFrequency = gSettings->modFrequency == 0 ? 1 : gSettings->modFrequency == 1 ? 0 : gSettings->modFrequency > 3 ? 3 : gSettings->modFrequency;
 		int modChannel = gSettings->modChannel < 0 ? 0 : gSettings->modChannel > 15 ? 15 : gSettings->modChannel;
 
-        communication.setHDRMode(gSettings->hdrMode);
-        communication.setIntegrationTime3d(gSettings->integrationTimeTOF1, gSettings->integrationTimeTOF2, gSettings->integrationTimeTOF3, gSettings->integrationTimeGray);        
-        communication.setMinimalAmplitude(gSettings->minAmplitude);
-        communication.setModulationFrequency(modFrequency, modChannel);
-        communication.setFilter(gSettings->medianFilter, gSettings->averageFilter, 1000.0 * gSettings->kalmanFactor, gSettings->kalmanThreshold,
-                                gSettings->edgeThreshold, gSettings->interferenceDetectionLimit, gSettings->interferenceDetectionUseLastValue);
-        communication.setRoi(gSettings->roi_leftX, gSettings->roi_topY, gSettings->roi_rightX, gSettings->roi_bottomY);
+		communication.setHDRMode(gSettings->hdrMode);
+		communication.setIntegrationTime3d(gSettings->integrationTimeTOF1, gSettings->integrationTimeTOF2, gSettings->integrationTimeTOF3, gSettings->integrationTimeGray);        
+		communication.setMinimalAmplitude(gSettings->minAmplitude);
+		communication.setModulationFrequency(modFrequency, modChannel);
+		communication.setFilter(gSettings->medianFilter, gSettings->averageFilter, 1000.0 * gSettings->kalmanFactor, gSettings->kalmanThreshold,
+								gSettings->edgeThreshold, gSettings->interferenceDetectionLimit, gSettings->interferenceDetectionUseLastValue);
+		communication.setRoi(gSettings->roi_leftX, gSettings->roi_topY, gSettings->roi_rightX, gSettings->roi_bottomY);
 
-        cartesian.initLensTransform(sensorPointSizeMM, numCols, numRows, gSettings->lensCenterOffsetX, gSettings->lensCenterOffsetY, gSettings->lenstype);
+		cartesian.initLensTransform(sensorPointSizeMM, numCols, numRows, gSettings->lensCenterOffsetX, gSettings->lensCenterOffsetY, gSettings->lenstype);
 		oldLensCenterOffsetX = gSettings->lensCenterOffsetX;
 		oldLensCenterOffsetY = gSettings->lensCenterOffsetY;	
 
-	    if(gSettings->startStream)
-	        gSettings->runVideo = true;
+		if(gSettings->startStream)
+		gSettings->runVideo = true;
 		else
-			gSettings->runVideo = false;
+		gSettings->runVideo = false;
 
 		setWinName();
-
-    } //END if(gSettings->updateParam)
+	}
 }
 
 
 void Nsl3130Driver::updateData()
 {
-    std::chrono::system_clock::time_point timeNow = std::chrono::system_clock::now();
+	std::chrono::system_clock::time_point timeNow = std::chrono::system_clock::now();
 	std::chrono::milliseconds elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - timeLast);
 
-    if(elapsed_time.count() >= framePeriod )
+	if(elapsed_time.count() >= framePeriod )
 	{
-//		printf("milli = %ld period = %.1f\n", elapsed_time.count(), framePeriod);
-        timeLast = timeNow;
+		timeLast = timeNow;
 
-//        printf("Type = %d\n", gSettings->imageType);
-
-        switch(gSettings->imageType)
-        {
-            case Nsl3130Image::ImageType_e::GRAYSCALE:
-                  communication.getGrayscale(com_const::Acquisition::VALUE_AUTO_REPEAT_MEASUREMENT);
-                  break;
-            case Nsl3130Image::ImageType_e::DISTANCE:
-                  communication.getDistance(com_const::Acquisition::VALUE_AUTO_REPEAT_MEASUREMENT);
-                  break;
-            case Nsl3130Image::ImageType_e::DISTANCE_AMPLITUDE:
+		switch(gSettings->imageType)
+		{
+			case Nsl3130Image::ImageType_e::GRAYSCALE:
+				communication.getGrayscale(com_const::Acquisition::VALUE_AUTO_REPEAT_MEASUREMENT);
+				break;
+			case Nsl3130Image::ImageType_e::DISTANCE:
+				communication.getDistance(com_const::Acquisition::VALUE_AUTO_REPEAT_MEASUREMENT);
+				break;
+			case Nsl3130Image::ImageType_e::DISTANCE_AMPLITUDE:
 			default:
-                  communication.getDistanceAmplitude(com_const::Acquisition::VALUE_AUTO_REPEAT_MEASUREMENT);
-                  break;
-        }
+				communication.getDistanceAmplitude(com_const::Acquisition::VALUE_AUTO_REPEAT_MEASUREMENT);
+				break;
+		}
 
-    } //end if elapsed_time
-
+	}
 }
+
 
 void Nsl3130Driver::initCommunication()
 {
@@ -585,66 +555,65 @@ void Nsl3130Driver::getMouseEvent( int &mouse_xpos, int &mouse_ypos )
 	mouse_ypos = y_start;
 }
 
-double Nsl3130Driver::interpolate( double x, double x0, double y0, double x1, double y1){
-
-    if( x1 == x0 ){
-        return y0;
-    } else {
-        return ((x-x0)*(y1-y0)/(x1-x0) + y0);
-    }
-
+double Nsl3130Driver::interpolate( double x, double x0, double y0, double x1, double y1)
+{
+	if( x1 == x0 ){
+		return y0;
+	} else {
+		return ((x-x0)*(y1-y0)/(x1-x0) + y0);
+	}
 }
 
 void Nsl3130Driver::createColorMapPixel(int numSteps, int indx, unsigned char &red, unsigned char &green, unsigned char &blue)
 {
-    double k = 1;
-    double BIT0 = -0.125 * k - 0.25;
-    double BIT1 = BIT0 + 0.25 * k;
-    double BIT2 = BIT1 + 0.25 * k;
-    double BIT3 = BIT2 + 0.25 * k;
+	double k = 1;
+	double BIT0 = -0.125 * k - 0.25;
+	double BIT1 = BIT0 + 0.25 * k;
+	double BIT2 = BIT1 + 0.25 * k;
+	double BIT3 = BIT2 + 0.25 * k;
 
-    double G0 = BIT1;
-    double G1 = G0 + 0.25 * k;
-    double G2 = G1 + 0.25 * k;
-    double G3 = G2 + 0.25 * k + 0.125;
+	double G0 = BIT1;
+	double G1 = G0 + 0.25 * k;
+	double G2 = G1 + 0.25 * k;
+	double G3 = G2 + 0.25 * k + 0.125;
 
-    double R0 = BIT2;
-    double R1 = R0 + 0.25 * k;
-    double R2 = R1 + 0.25 * k;
-    double R3 = R2 + 0.25 * k + 0.25;
+	double R0 = BIT2;
+	double R1 = R0 + 0.25 * k;
+	double R2 = R1 + 0.25 * k;
+	double R3 = R2 + 0.25 * k + 0.25;
 
-    double i = (double)indx/(double)numSteps - 0.25 * k;
+	double i = (double)indx/(double)numSteps - 0.25 * k;
 
-    if( i>= R0 && i < R1 ){
-        red = interpolate(i, R0, 0, R1, 255);
-    } else if((i >= R1) && (i < R2)){
-        red = 255;
-    } else if((i >= R2) && (i < R3)) {
-        red = interpolate(i, R2, 255, R3, 0);
-    } else {
-        red = 0;
-    }
+	if( i>= R0 && i < R1 ){
+		red = interpolate(i, R0, 0, R1, 255);
+	} else if((i >= R1) && (i < R2)){
+		red = 255;
+	} else if((i >= R2) && (i < R3)) {
+		red = interpolate(i, R2, 255, R3, 0);
+	} else {
+		red = 0;
+	}
 
-    if( i>= G0 && i < G1 ){
-        green = interpolate(i, G0, 0, G1, 255);
-    } else if((i>=G1)&&(i<G2)){
-        green = 255;
-    } else if((i >= G2)&&(i < G3)){
-        green = interpolate(i, G2, 255, G3, 0);
-    } else {
-        green = 0;
-    }
+	if( i>= G0 && i < G1 ){
+		green = interpolate(i, G0, 0, G1, 255);
+	} else if((i>=G1)&&(i<G2)){
+		green = 255;
+	} else if((i >= G2)&&(i < G3)){
+		green = interpolate(i, G2, 255, G3, 0);
+	} else {
+		green = 0;
+	}
 
 
-    if( i>= BIT0 && i < BIT1 ){
-        blue = interpolate(i, BIT0, 0, BIT1, 255);
-    } else if((i >= BIT1)&&(i < BIT2)){
-        blue = 255;
-    } else if((i >= BIT2)&&(i < BIT3)) {
-        blue = interpolate(i, BIT2, 255, BIT3, 0);
-    } else{
-        blue = 0;
-    }
+	if( i>= BIT0 && i < BIT1 ){
+		blue = interpolate(i, BIT0, 0, BIT1, 255);
+	} else if((i >= BIT1)&&(i < BIT2)){
+		blue = 255;
+	} else if((i >= BIT2)&&(i < BIT3)) {
+		blue = interpolate(i, BIT2, 255, BIT3, 0);
+	} else{
+		blue = 0;
+	}
 
 }
 
@@ -834,13 +803,13 @@ void Nsl3130Driver::updateTemperature(double temperature)
 #if 1
 	std::ignore = temperature;
 #else
-    //ROS_DEBUG("Temperature: %2.2f", temperature);
-    msgTemperature.header.frame_id = "sensor_frame";
-    msgTemperature.variance = 0.0; //0.05 ?
-    msgTemperature.header.stamp = ros::Time::now();
-    msgTemperature.temperature = temperature;
-    temperaturePublisher.publish(msgTemperature);
-    msgTemperature.header.seq++;
+	//ROS_DEBUG("Temperature: %2.2f", temperature);
+	msgTemperature.header.frame_id = "sensor_frame";
+	msgTemperature.variance = 0.0; //0.05 ?
+	msgTemperature.header.stamp = ros::Time::now();
+	msgTemperature.temperature = temperature;
+	temperaturePublisher.publish(msgTemperature);
+	msgTemperature.header.seq++;
 #endif	
 }
 
@@ -853,30 +822,30 @@ void Nsl3130Driver::updateGrayscaleFrame(std::shared_ptr<com_lib::Nsl3130Image> 
 
 	frameAddCnt++;
 
-    if(gSettings->enableTemperature){
-        updateTemperature(image->getTemperature());
-    }
+	if(gSettings->enableTemperature){
+		updateTemperature(image->getTemperature());
+	}
 
-    if(gSettings->enableImages)
-    {
-        //img16_1.header.seq = frameSeq++;
-        img16_1.header.stamp = data_stamp;
-        img16_1.header.frame_id = strFrameID;
-        img16_1.height = static_cast<uint32_t>(image->getHeight());
-        img16_1.width = static_cast<uint32_t>(image->getWidth());
-        img16_1.encoding = sensor_msgs::image_encodings::MONO16;
-        img16_1.step = img16_1.width * 2;
-        img16_1.is_bigendian = 0;
-        uint numPix = img16_1.width * img16_1.height;
+	if(gSettings->enableImages)
+	{
+		//img16_1.header.seq = frameSeq++;
+		img16_1.header.stamp = data_stamp;
+		img16_1.header.frame_id = strFrameID;
+		img16_1.height = static_cast<uint32_t>(image->getHeight());
+		img16_1.width = static_cast<uint32_t>(image->getWidth());
+		img16_1.encoding = sensor_msgs::image_encodings::MONO16;
+		img16_1.step = img16_1.width * 2;
+		img16_1.is_bigendian = 0;
+		uint numPix = img16_1.width * img16_1.height;
 
-        if(imageSize16_1 != numPix){
-            imageSize16_1 = numPix;
-            img16_1.data.resize(static_cast<unsigned long>(numPix*2));
+		if(imageSize16_1 != numPix){
+			imageSize16_1 = numPix;
+			img16_1.data.resize(static_cast<unsigned long>(numPix*2));
 
 			dist2BData.resize(numPix);
 			ampl2BData.resize(numPix);
 			gray2BData.resize(numPix);
-        }
+		}
 
 		dist2BData.clear();
 		ampl2BData.clear();
@@ -886,73 +855,71 @@ void Nsl3130Driver::updateGrayscaleFrame(std::shared_ptr<com_lib::Nsl3130Image> 
 		int maxWidth = image->getWidth();
 		std::vector<uint8_t>& data = image->getData();
 
-	    for (int y = 0, index = 0; y < maxHeight; y ++)
+		for (int y = 0, index = 0; y < maxHeight; y ++)
 		{
 			for (int x = 0; x < maxWidth; x++, index++)
 			{
 				int pixelAmplitude = (data[2*index+1+offset] << 8) + data[2*index+0+offset];
-	            img16_1.data[2*index+0] = data[2*index+0+offset];
-	            img16_1.data[2*index+1] = data[2*index+1+offset];
+				img16_1.data[2*index+0] = data[2*index+0+offset];
+				img16_1.data[2*index+1] = data[2*index+1+offset];
 
-				
+
 				setGrayScaledColor(amplitudeLidar, x, y, pixelAmplitude, 2048);
 
 				gray2BData[index] = pixelAmplitude;
 			}
-    	}
+		}
 
-        imagePublisher1->publish(img16_1);
+		imagePublisher1->publish(img16_1);
 
-    } //end if enableImages
+	} //end if enableImages
 
 	if(settings.cvShow)
 	{
 		getMouseEvent(mouseXpos, mouseYpos);
-		
 		amplitudeLidar = addDistanceInfo(amplitudeLidar, image);
 		
 		cv::imshow(winName, amplitudeLidar);
 		cv::waitKey(1);
 	}
-
 }
 
 
 void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> image)
 {    
-    std::vector<uint8_t>& data = image->getData();
+	std::vector<uint8_t>& data = image->getData();
 	int offset = image->getOffset();
 	auto data_stamp = _ros_clock.now();
 
 	frameAddCnt++;
 
-    cv::Mat imageLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
+	cv::Mat imageLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
 
-    if(gSettings->enableTemperature){
-        updateTemperature(image->getTemperature());
-    }
+	if(gSettings->enableTemperature){
+		updateTemperature(image->getTemperature());
+	}
 
-    if(gSettings->enableImages)
-    {
-        //img16_1.header.seq = frameSeq++;
-        img16_1.header.stamp = data_stamp;
-        img16_1.header.frame_id = strFrameID;
-        img16_1.height = static_cast<uint32_t>(image->getHeight());
-        img16_1.width = static_cast<uint32_t>(image->getWidth());
-        img16_1.encoding = sensor_msgs::image_encodings::MONO16;
-        img16_1.step = img16_1.width * 2;//pixelSize;
-        img16_1.is_bigendian = 0;
-        uint numPix = img16_1.width * img16_1.height;
-        uint dataSize =  numPix * 2;//pixelSize;
+	if(gSettings->enableImages)
+	{
+		//img16_1.header.seq = frameSeq++;
+		img16_1.header.stamp = data_stamp;
+		img16_1.header.frame_id = strFrameID;
+		img16_1.height = static_cast<uint32_t>(image->getHeight());
+		img16_1.width = static_cast<uint32_t>(image->getWidth());
+		img16_1.encoding = sensor_msgs::image_encodings::MONO16;
+		img16_1.step = img16_1.width * 2;//pixelSize;
+		img16_1.is_bigendian = 0;
+		uint numPix = img16_1.width * img16_1.height;
+		uint dataSize =  numPix * 2;//pixelSize;
 
-        if(imageSize16_1 != numPix){
-            imageSize16_1 = numPix;
-            img16_1.data.resize(static_cast<ulong>(dataSize));
+		if(imageSize16_1 != numPix){
+			imageSize16_1 = numPix;
+			img16_1.data.resize(static_cast<ulong>(dataSize));
 
 			dist2BData.resize(numPix);
 			ampl2BData.resize(numPix);
 			gray2BData.resize(numPix);
-        }
+		}
 
 		dist2BData.clear();
 		ampl2BData.clear();
@@ -961,31 +928,27 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
 		int maxHeight = image->getHeight();
 		int maxWidth = image->getWidth();
 
-	    for (int y = 0, index = 0; y < maxHeight; y ++)
+		for (int y = 0, index = 0; y < maxHeight; y ++)
 		{
 			for (int x = 0; x < maxWidth; x++, index++)
 			{
 				int pixelDistance = (data[2*index+1+offset] << 8) + data[2*index+0+offset];
-	            img16_1.data[2*index+0] = data[2*index+0+offset];
-	            img16_1.data[2*index+1] = data[2*index+1+offset];
+				img16_1.data[2*index+0] = data[2*index+0+offset];
+				img16_1.data[2*index+1] = data[2*index+1+offset];
 
-				
 				setDistanceColor(imageLidar, x, y, pixelDistance);
-
 				dist2BData[index] = pixelDistance;
 			}
-    	}
+		}
 
-        imagePublisher1->publish(img16_1);
-    }
+		imagePublisher1->publish(img16_1);
+	}
 
 	publisherPointCloud(image);
-
 
 	if(settings.cvShow)
 	{
 		getMouseEvent(mouseXpos, mouseYpos);
-		
 		imageLidar = addDistanceInfo(imageLidar, image);
 
 		cv::imshow(winName, imageLidar);
@@ -996,51 +959,51 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
 
 void Nsl3130Driver::updateDistanceAmplitudeFrame(std::shared_ptr<Nsl3130Image> image)
 {
-    std::vector<uint8_t>& data = image->getData();
+	std::vector<uint8_t>& data = image->getData();
 	int offset = image->getOffset();
 	auto data_stamp = _ros_clock.now();
 
 	frameAddCnt++;
 
-    cv::Mat imageLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
+	cv::Mat imageLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
 	cv::Mat amplitudeLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
 
-    if(gSettings->enableTemperature){
-        updateTemperature(image->getTemperature());
-    }
+	if(gSettings->enableTemperature){
+		updateTemperature(image->getTemperature());
+	}
 
-    if(gSettings->enableImages)
-    {
-//        img16_1.header.seq = frameSeq;
-        img16_1.header.stamp = data_stamp;
-        img16_1.header.frame_id = strFrameID;
-        img16_1.height = static_cast<uint32_t>(image->getHeight());
-        img16_1.width = static_cast<uint32_t>(image->getWidth());
-        img16_1.encoding = sensor_msgs::image_encodings::MONO16;
-        img16_1.step = img16_1.width * 2;
-        img16_1.is_bigendian = 0;
+	if(gSettings->enableImages)
+	{
+		//        img16_1.header.seq = frameSeq;
+		img16_1.header.stamp = data_stamp;
+		img16_1.header.frame_id = strFrameID;
+		img16_1.height = static_cast<uint32_t>(image->getHeight());
+		img16_1.width = static_cast<uint32_t>(image->getWidth());
+		img16_1.encoding = sensor_msgs::image_encodings::MONO16;
+		img16_1.step = img16_1.width * 2;
+		img16_1.is_bigendian = 0;
 
-        img16_2.header.stamp = data_stamp;
-        img16_2.header.frame_id = strFrameID;
-        img16_2.height = static_cast<uint32_t>(image->getHeight());
-        img16_2.width = static_cast<uint32_t>(image->getWidth());
-        img16_2.encoding = sensor_msgs::image_encodings::MONO16;
-        img16_2.step = img16_2.width * 2;
-        img16_2.is_bigendian = 0;
+		img16_2.header.stamp = data_stamp;
+		img16_2.header.frame_id = strFrameID;
+		img16_2.height = static_cast<uint32_t>(image->getHeight());
+		img16_2.width = static_cast<uint32_t>(image->getWidth());
+		img16_2.encoding = sensor_msgs::image_encodings::MONO16;
+		img16_2.step = img16_2.width * 2;
+		img16_2.is_bigendian = 0;
 
-        uint numPix = img16_1.width * img16_1.height;
+		uint numPix = img16_1.width * img16_1.height;
 
-        if(imageSize16_1 != numPix){
-            imageSize16_1 = numPix;
-            imageSize16_2 = numPix;
-			
-            img16_1.data.resize(static_cast<ulong>(numPix) * 2);
-            img16_2.data.resize(static_cast<ulong>(numPix) * 2);
+		if(imageSize16_1 != numPix){
+			imageSize16_1 = numPix;
+			imageSize16_2 = numPix;
+
+			img16_1.data.resize(static_cast<ulong>(numPix) * 2);
+			img16_2.data.resize(static_cast<ulong>(numPix) * 2);
 
 			dist2BData.resize(numPix);
 			ampl2BData.resize(numPix);
 			gray2BData.resize(numPix);
-        }
+		}
 
 		dist2BData.clear();
 		ampl2BData.clear();
@@ -1049,61 +1012,59 @@ void Nsl3130Driver::updateDistanceAmplitudeFrame(std::shared_ptr<Nsl3130Image> i
 		int maxHeight = image->getHeight();
 		int maxWidth = image->getWidth();
 
-	    for (int y = 0, index = 0; y < maxHeight; y ++)
+		for (int y = 0, index = 0; y < maxHeight; y ++)
 		{
 			for (int x = 0; x < maxWidth; x++, index++)
 			{
 				int pixelDistance = (data[4*index+1+offset] << 8) + data[4*index+0+offset];
-	            img16_1.data[2*index+0] = data[4*index+0+offset];
-	            img16_1.data[2*index+1] = data[4*index+1+offset];
+				img16_1.data[2*index+0] = data[4*index+0+offset];
+				img16_1.data[2*index+1] = data[4*index+1+offset];
 
 				int pixelAmplitude = (data[4*index+3+offset] << 8) + data[4*index+2+offset];
-	            img16_2.data[2*index+0] = data[4*index+2+offset];
-	            img16_2.data[2*index+1] = data[4*index+3+offset];
-				
+				img16_2.data[2*index+0] = data[4*index+2+offset];
+				img16_2.data[2*index+1] = data[4*index+3+offset];
+
 				setDistanceColor(imageLidar, x, y, pixelDistance);
 				setAmplitudeColor(amplitudeLidar, x, y, pixelAmplitude);
 
 				dist2BData[index] = pixelDistance;
 				ampl2BData[index] = pixelAmplitude;
 			}
-    	}
+		}
 
-        imagePublisher1->publish(img16_1);
-        imagePublisher2->publish(img16_2);
+		imagePublisher1->publish(img16_1);
+		imagePublisher2->publish(img16_2);
 
-    }
+	}
 
 	publisherPointCloud(image);
 
 	if(settings.cvShow)
 	{
 		getMouseEvent(mouseXpos, mouseYpos);
-
 		cv::hconcat(imageLidar, amplitudeLidar, imageLidar);
 		imageLidar = addDistanceInfo(imageLidar, image);
 
 		cv::imshow(winName, imageLidar);
 		cv::waitKey(1);
 	}
-
 }
 
 void Nsl3130Driver::publisherPointCloud(std::shared_ptr<Nsl3130Image> image)
 {
 	auto data_stamp = _ros_clock.now();
 
-    if(gSettings->enablePointCloud)
-    {
-        const uint nPixel = image->getWidth() * image->getHeight();
-        static pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>());
-        cloud->header.frame_id = strFrameID;
-        cloud->header.stamp = pcl_conversions::toPCL(data_stamp);
-        cloud->width = static_cast<uint32_t>(image->getWidth());
-        cloud->height = static_cast<uint32_t>(image->getHeight());
-        cloud->is_dense = false;
+	if(gSettings->enablePointCloud)
+	{
+		const uint nPixel = image->getWidth() * image->getHeight();
+		static pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>());
+		cloud->header.frame_id = strFrameID;
+		cloud->header.stamp = pcl_conversions::toPCL(data_stamp);
+		cloud->width = static_cast<uint32_t>(image->getWidth());
+		cloud->height = static_cast<uint32_t>(image->getHeight());
+		cloud->is_dense = false;
 		cloud->points.resize(nPixel);
-		
+
 		for(unsigned int k=0, l=0, y=0; y < image->getHeight(); y++)
 		{
 			for(unsigned int x=0; x < image->getWidth(); x++, k++, l+=2)
@@ -1115,14 +1076,15 @@ void Nsl3130Driver::publisherPointCloud(std::shared_ptr<Nsl3130Image> image)
 				if (distance > 0 && distance < gSettings->maxDistance)
 				{
 					double px, pz, py;
-                    cartesian.transformPixel(x, y, (double)(distance), px, py, pz);
+					cartesian.transformPixel(x, y, (double)(distance), px, py, pz);
 					p.x = static_cast<float>(pz / 1000.0); //mm -> m
 					p.y = static_cast<float>(px / 1000.0);
 					p.z = static_cast<float>(py / 1000.0);
 
-					if(image->getDataType() == Nsl3130Image::DataType::DATA_DISTANCE_AMPLITUDE
-						|| image->getDataType() == Nsl3130Image::DataType::DATA_DISTANCE_AMPLITUDE_GRAYSCALE ) p.intensity = static_cast<float>(ampl2BData[k]);
-					else p.intensity = static_cast<float>(pz / 1000.0);
+					if(image->getDataType() == Nsl3130Image::DataType::DATA_DISTANCE_AMPLITUDE || image->getDataType() == Nsl3130Image::DataType::DATA_DISTANCE_AMPLITUDE_GRAYSCALE ) 
+						p.intensity = static_cast<float>(ampl2BData[k]);
+					else 
+						p.intensity = static_cast<float>(pz / 1000.0);
 				}
 				else
 				{
@@ -1134,14 +1096,13 @@ void Nsl3130Driver::publisherPointCloud(std::shared_ptr<Nsl3130Image> image)
 
 			}
 		}
-		
+
 		sensor_msgs::msg::PointCloud2 msg;
 		pcl::toROSMsg(*cloud, msg);
 		msg.header.stamp = data_stamp;
 		msg.header.frame_id = strFrameID;
-		pointCloud2Publisher->publish(msg);  
-
-	} //end if enablePointCloud
+		pointCloud2Publisher->publish(msg);
+	}
 
 }
 
@@ -1152,7 +1113,8 @@ cv::Mat Nsl3130Driver::addDistanceInfo(cv::Mat distMat, std::shared_ptr<Nsl3130I
 
 //	printf("mouseXpos = %d mouseYpos = %d width = %d height = %d type = %d\n", mouseXpos, mouseYpos, image->getWidth(), image->getHeight(), image->getDataType());
 	
-	if( (ypos > 0 && ypos < image->getHeight())){
+	if( (ypos > 0 && ypos < image->getHeight()))
+	{
 		// mouseXpos, mouseYpos
 		cv::Mat infoImage(50, distMat.cols, CV_8UC3, cv::Scalar(255, 255, 255));
 
