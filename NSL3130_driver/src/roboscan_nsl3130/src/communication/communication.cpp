@@ -71,7 +71,7 @@ void Communication::flushBuffer()
 	if( flushing ) return;
 	
 	do{
-		printf("start flushRx\n");
+		printf("start flushRx %d.%d %d.%d\n", xMin, yMin, xMax, yMax);
 
 		flushing = true;
 		serialConnection->flushRx();

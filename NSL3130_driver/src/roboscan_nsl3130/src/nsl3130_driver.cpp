@@ -280,9 +280,9 @@ void Nsl3130Driver::parameterInit()
 	descriptor.integer_range= {range};
 	this->declare_parameter<int>("U. roiRightX", settings.roi_rightX, descriptor);
 
-	range.set__from_value(123).set__to_value(239).set__step(2);
-	descriptor.integer_range= {range};
-	this->declare_parameter("V. roiBottomY", settings.roi_bottomY, descriptor);
+//	range.set__from_value(123).set__to_value(239).set__step(2);
+//	descriptor.integer_range= {range};
+//	this->declare_parameter("V. roiBottomY", settings.roi_bottomY, descriptor);
 
 	range.set__from_value(0).set__to_value(2).set__step(1);
 	descriptor.integer_range= {range};
@@ -303,7 +303,8 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 	result.successful = true;
 	result.reason = "success";
 	// Here update class attributes, do some actions, etc.
-
+	bool chanedRoiTopY = false;
+	
 	for (const auto &param: parameters)
 	{
 		if (param.get_name() == "A. startStream")
@@ -412,7 +413,13 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 		}
 		else if (param.get_name() == "T. roiTopY")
 		{
-			settings_callback.roi_topY= param.as_int();
+			int roi_topY = param.as_int();
+			if( chanedRoiTopY == false && settings_callback.roi_topY != roi_topY ){
+				int step = 239-roi_topY;
+				settings_callback.roi_topY = roi_topY;
+				settings_callback.roi_bottomY = step;
+				chanedRoiTopY = true;
+			}
 		}
 		else if (param.get_name() == "U. roiRightX")
 		{
@@ -420,7 +427,14 @@ rcl_interfaces::msg::SetParametersResult Nsl3130Driver::parametersCallback( cons
 		}
 		else if (param.get_name() == "V. roiBottomY")
 		{
-			settings_callback.roi_bottomY= param.as_int();
+			int roi_bottomY= param.as_int();
+			if( chanedRoiTopY == false && settings_callback.roi_bottomY != roi_bottomY )
+			{
+				int step = 239-roi_bottomY;
+				settings_callback.roi_bottomY = roi_bottomY;
+				settings_callback.roi_topY = step;
+				chanedRoiTopY = true;
+			}
 		}
 		else if (param.get_name() == "W. lensType")
 		{
