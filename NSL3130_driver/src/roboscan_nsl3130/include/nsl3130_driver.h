@@ -96,7 +96,7 @@ private:
 	int frameAddCnt;
     uint frameSeq;    
 
-	static Settings *gSettings;
+	static Settings settings;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr imagePublisher1;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr imagePublisher2;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointCloud2Publisher;

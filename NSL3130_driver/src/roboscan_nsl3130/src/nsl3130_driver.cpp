@@ -24,9 +24,8 @@ using namespace std;
 static int maxAmplitudeValue = 2897;
 static const int indexAmplitudeFactorColor = NSL3130_NUM_COLORS / maxAmplitudeValue;
 
-static Settings settings;
 static Settings settings_callback;
-Settings *Nsl3130Driver::gSettings;
+Settings Nsl3130Driver::settings;
 
 
 std::atomic<int> x_start = -1, y_start = -1;
@@ -109,50 +108,49 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 	lastStreaming = false;
 	strFrameID = "roboscan_frame";
 
-	gSettings = &settings;
 
-	gSettings->imageType = Nsl3130Image::ImageType_e::DISTANCE_AMPLITUDE;
-	gSettings->lenstype = 1;
-	gSettings->frameRate = 20; //fps
-	gSettings->lensCenterOffsetX = 0;
-	gSettings->lensCenterOffsetY = 0;
-	gSettings->hdrMode = 0;
-	gSettings->integrationTimeTOF1 = 1500;
-	gSettings->integrationTimeTOF2 = 500;
-	gSettings->integrationTimeTOF3 = 50;
-	gSettings->integrationTimeGray = 100;
-	gSettings->modFrequency = 1;	// 12Mhz
-	gSettings->modChannel = 0;
+	settings.imageType = Nsl3130Image::ImageType_e::DISTANCE_AMPLITUDE;
+	settings.lenstype = 1;
+	settings.frameRate = 20; //fps
+	settings.lensCenterOffsetX = 0;
+	settings.lensCenterOffsetY = 0;
+	settings.hdrMode = 0;
+	settings.integrationTimeTOF1 = 1500;
+	settings.integrationTimeTOF2 = 500;
+	settings.integrationTimeTOF3 = 50;
+	settings.integrationTimeGray = 100;
+	settings.modFrequency = 1;	// 12Mhz
+	settings.modChannel = 0;
 
-	gSettings->medianFilter = false;
-	gSettings->averageFilter = false;
-	gSettings->kalmanFactor = 0;
-	gSettings->kalmanThreshold = 300;
-	gSettings->edgeThreshold = 0;
-	gSettings->interferenceDetectionLimit = 0;
-	gSettings->interferenceDetectionUseLastValue = 0;
+	settings.medianFilter = false;
+	settings.averageFilter = false;
+	settings.kalmanFactor = 0;
+	settings.kalmanThreshold = 300;
+	settings.edgeThreshold = 0;
+	settings.interferenceDetectionLimit = 0;
+	settings.interferenceDetectionUseLastValue = 0;
 
-	gSettings->minAmplitude = 50;
-	gSettings->minDistance = 30;
-	gSettings->maxDistance = 12500;
+	settings.minAmplitude = 50;
+	settings.minDistance = 30;
+	settings.maxDistance = 12500;
 
 
-	gSettings->enableCartesian   = true;
-	gSettings->enableTemperature = false;
-	gSettings->enableImages      = true;
-	gSettings->enablePointCloud  = true;
+	settings.enableCartesian   = true;
+	settings.enableTemperature = false;
+	settings.enableImages      = true;
+	settings.enablePointCloud  = true;
 
-	gSettings->roi_leftX   = 0;
-	gSettings->roi_rightX  = 319;
-	gSettings->roi_topY = 0;
-	gSettings->roi_bottomY = 239;
+	settings.roi_leftX   = 0;
+	settings.roi_rightX  = 319;
+	settings.roi_topY = 0;
+	settings.roi_bottomY = 239;
 
-	gSettings->startStream = true;	// auto start
-	gSettings->runVideo = false;
-	gSettings->triggerSingleShot = false;
-	gSettings->updateParam = true;
-	gSettings->cvShow = false;
-	gSettings->changedCvShow = false;
+	settings.startStream = true;	// auto start
+	settings.runVideo = false;
+	settings.triggerSingleShot = false;
+	settings.updateParam = true;
+	settings.cvShow = false;
+	settings.changedCvShow = false;
 
 	parameterInit();
 
@@ -167,7 +165,7 @@ Nsl3130Driver::Nsl3130Driver() : Node("roboscan_publish_node"),
 	communication.sigReceivedDistance.connect(boost::bind(&Nsl3130Driver::updateDistanceFrame, this, _1));
 	communication.sigReceivedDistanceAmplitude.connect(boost::bind(&Nsl3130Driver::updateDistanceAmplitudeFrame, this, _1));    
 
-	gSettings->updateParam = true;
+	settings.updateParam = true;
 	timeLast = std::chrono::system_clock::now();
 
 	setParameters();
@@ -454,49 +452,49 @@ void Nsl3130Driver::update()
 		frameAddCnt = 0;
 	}
 
-	if(gSettings->runVideo && !gSettings->updateParam){
+	if(settings.runVideo && !settings.updateParam){
 		updateData(); //streaming
 
-	}else if(gSettings->updateParam){
+	}else if(settings.updateParam){
 		setParameters(); //update parameters
 
-		if(gSettings->triggerSingleShot && gSettings->triggerSingleShot != lastSingleShot)
+		if(settings.triggerSingleShot && settings.triggerSingleShot != lastSingleShot)
 			updateData(); //trigger single shot
 
-		lastSingleShot = gSettings->triggerSingleShot;
+		lastSingleShot = settings.triggerSingleShot;
 	}
 }
 
 void Nsl3130Driver::setParameters()
 {
-	if(gSettings->updateParam)
+	if(settings.updateParam)
 	{
 		memcpy(&settings, &settings_callback, sizeof(settings_callback));
-		gSettings->updateParam = false;
+		settings.updateParam = false;
 
-		printf("update parameters hdr = %d\n", gSettings->hdrMode);
+		printf("update parameters hdr = %d\n", settings.hdrMode);
 
-		framePeriod = 1.0 / gSettings->frameRate * 1000.0f; // msec
+		framePeriod = 1.0 / settings.frameRate * 1000.0f; // msec
 
-		int modFrequency = gSettings->modFrequency == 0 ? 1 : gSettings->modFrequency == 1 ? 0 : gSettings->modFrequency > 3 ? 3 : gSettings->modFrequency;
-		int modChannel = gSettings->modChannel < 0 ? 0 : gSettings->modChannel > 15 ? 15 : gSettings->modChannel;
+		int modFrequency = settings.modFrequency == 0 ? 1 : settings.modFrequency == 1 ? 0 : settings.modFrequency > 3 ? 3 : settings.modFrequency;
+		int modChannel = settings.modChannel < 0 ? 0 : settings.modChannel > 15 ? 15 : settings.modChannel;
 
-		communication.setHDRMode(gSettings->hdrMode);
-		communication.setIntegrationTime3d(gSettings->integrationTimeTOF1, gSettings->integrationTimeTOF2, gSettings->integrationTimeTOF3, gSettings->integrationTimeGray);        
-		communication.setMinimalAmplitude(gSettings->minAmplitude);
+		communication.setHDRMode(settings.hdrMode);
+		communication.setIntegrationTime3d(settings.integrationTimeTOF1, settings.integrationTimeTOF2, settings.integrationTimeTOF3, settings.integrationTimeGray);        
+		communication.setMinimalAmplitude(settings.minAmplitude);
 		communication.setModulationFrequency(modFrequency, modChannel);
-		communication.setFilter(gSettings->medianFilter, gSettings->averageFilter, 1000.0 * gSettings->kalmanFactor, gSettings->kalmanThreshold,
-								gSettings->edgeThreshold, gSettings->interferenceDetectionLimit, gSettings->interferenceDetectionUseLastValue);
-		communication.setRoi(gSettings->roi_leftX, gSettings->roi_topY, gSettings->roi_rightX, gSettings->roi_bottomY);
+		communication.setFilter(settings.medianFilter, settings.averageFilter, 1000.0 * settings.kalmanFactor, settings.kalmanThreshold,
+								settings.edgeThreshold, settings.interferenceDetectionLimit, settings.interferenceDetectionUseLastValue);
+		communication.setRoi(settings.roi_leftX, settings.roi_topY, settings.roi_rightX, settings.roi_bottomY);
 
-		cartesian.initLensTransform(sensorPointSizeMM, numCols, numRows, gSettings->lensCenterOffsetX, gSettings->lensCenterOffsetY, gSettings->lenstype);
-		oldLensCenterOffsetX = gSettings->lensCenterOffsetX;
-		oldLensCenterOffsetY = gSettings->lensCenterOffsetY;	
+		cartesian.initLensTransform(sensorPointSizeMM, numCols, numRows, settings.lensCenterOffsetX, settings.lensCenterOffsetY, settings.lenstype);
+		oldLensCenterOffsetX = settings.lensCenterOffsetX;
+		oldLensCenterOffsetY = settings.lensCenterOffsetY;	
 
-		if(gSettings->startStream)
-		gSettings->runVideo = true;
+		if(settings.startStream)
+			settings.runVideo = true;
 		else
-		gSettings->runVideo = false;
+			settings.runVideo = false;
 
 		setWinName();
 	}
@@ -512,7 +510,7 @@ void Nsl3130Driver::updateData()
 	{
 		timeLast = timeNow;
 
-		switch(gSettings->imageType)
+		switch(settings.imageType)
 		{
 			case Nsl3130Image::ImageType_e::GRAYSCALE:
 				communication.getGrayscale(com_const::Acquisition::VALUE_AUTO_REPEAT_MEASUREMENT);
@@ -659,20 +657,20 @@ int Nsl3130Driver::setDistanceColor(cv::Mat &imageLidar, int x, int y, int value
 //		imageLidar.at<Vec3b>(y, x)[2] = 255; 
 		imageLidar.at<cv::Vec3b>(y, x) = colorVector.at(colorVector.size()-1);
 	}
-	else if (value < gSettings->minDistance)
+	else if (value < settings.minDistance)
 	{
 		imageLidar.at<cv::Vec3b>(y, x)[0] = 0;
 		imageLidar.at<cv::Vec3b>(y, x)[1] = 0;
 		imageLidar.at<cv::Vec3b>(y, x)[2] = 0; 
 	}
-	else if (value > gSettings->maxDistance)
+	else if (value > settings.maxDistance)
 	{
 		imageLidar.at<cv::Vec3b>(y, x)[0] = 0;
 		imageLidar.at<cv::Vec3b>(y, x)[1] = 0;
 		imageLidar.at<cv::Vec3b>(y, x)[2] = 0; 
 	}
 	else{
-		int index = colorVector.size() - (value*(NSL3130_NUM_COLORS / (double)gSettings->maxDistance));
+		int index = colorVector.size() - (value*(NSL3130_NUM_COLORS / (double)settings.maxDistance));
 		if( index < 0 || index == NSL3130_NUM_COLORS ){
 			index = colorVector.size()-1;
 		}
@@ -817,11 +815,11 @@ void Nsl3130Driver::updateGrayscaleFrame(std::shared_ptr<com_lib::Nsl3130Image> 
 
 	frameAddCnt++;
 
-	if(gSettings->enableTemperature){
+	if(settings.enableTemperature){
 		updateTemperature(image->getTemperature());
 	}
 
-	if(gSettings->enableImages)
+	if(settings.enableImages)
 	{
 		//img16_1.header.seq = frameSeq++;
 		img16_1.header.stamp = data_stamp;
@@ -869,7 +867,7 @@ void Nsl3130Driver::updateGrayscaleFrame(std::shared_ptr<com_lib::Nsl3130Image> 
 
 	} //end if enableImages
 
-	if(gSettings->cvShow)
+	if(settings.cvShow)
 	{
 		getMouseEvent(mouseXpos, mouseYpos);
 		amplitudeLidar = addDistanceInfo(amplitudeLidar, image);
@@ -890,11 +888,11 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
 
 	cv::Mat imageLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
 
-	if(gSettings->enableTemperature){
+	if(settings.enableTemperature){
 		updateTemperature(image->getTemperature());
 	}
 
-	if(gSettings->enableImages)
+	if(settings.enableImages)
 	{
 		//img16_1.header.seq = frameSeq++;
 		img16_1.header.stamp = data_stamp;
@@ -941,7 +939,7 @@ void Nsl3130Driver::updateDistanceFrame(std::shared_ptr<com_lib::Nsl3130Image> i
 
 	publisherPointCloud(image);
 
-	if(gSettings->cvShow)
+	if(settings.cvShow)
 	{
 		getMouseEvent(mouseXpos, mouseYpos);
 		imageLidar = addDistanceInfo(imageLidar, image);
@@ -963,11 +961,11 @@ void Nsl3130Driver::updateDistanceAmplitudeFrame(std::shared_ptr<Nsl3130Image> i
 	cv::Mat imageLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
 	cv::Mat amplitudeLidar(image->getHeight(), image->getWidth(), CV_8UC3, cv::Scalar(255, 255, 255));
 
-	if(gSettings->enableTemperature){
+	if(settings.enableTemperature){
 		updateTemperature(image->getTemperature());
 	}
 
-	if(gSettings->enableImages)
+	if(settings.enableImages)
 	{
 		//        img16_1.header.seq = frameSeq;
 		img16_1.header.stamp = data_stamp;
@@ -1034,7 +1032,7 @@ void Nsl3130Driver::updateDistanceAmplitudeFrame(std::shared_ptr<Nsl3130Image> i
 
 	publisherPointCloud(image);
 
-	if(gSettings->cvShow)
+	if(settings.cvShow)
 	{
 		getMouseEvent(mouseXpos, mouseYpos);
 		cv::hconcat(imageLidar, amplitudeLidar, imageLidar);
@@ -1049,7 +1047,7 @@ void Nsl3130Driver::publisherPointCloud(std::shared_ptr<Nsl3130Image> image)
 {
 	auto data_stamp = _ros_clock.now();
 
-	if(gSettings->enablePointCloud)
+	if(settings.enablePointCloud)
 	{
 		const uint nPixel = image->getWidth() * image->getHeight();
 		static pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>());
@@ -1068,7 +1066,7 @@ void Nsl3130Driver::publisherPointCloud(std::shared_ptr<Nsl3130Image> image)
 
 				int distance = dist2BData[k];
 
-				if (distance > gSettings->minDistance && distance < gSettings->maxDistance)
+				if (distance > settings.minDistance && distance < settings.maxDistance)
 				{
 					double px, pz, py;
 					cartesian.transformPixel(x, y, (double)(distance), px, py, pz);
